@@ -205,7 +205,7 @@ main() {
 	declare -rx OPAL_EXE_PATH="${builddir}/src"
 	declare -r opalbin="${builddir}/src/opal"
 
-	declare -r run_tests="${testsdir}/run/run-reg-tests.py"
+	declare -r run_tests="${binir}/run-reg-tests.py"
 
 	if [[ -z "${REGTEST_WWW}" ]]; then
 		REGTEST_WWW="${PUBLISH_DIR}/${branch_g}"
