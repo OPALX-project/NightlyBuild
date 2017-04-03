@@ -172,7 +172,7 @@ run_regressiontests() {
 		/usr/bin/aklog						|| exit 2
 	fi
 
-	"${run_tests}" "${opts}" "${tests[@]}"
+	"${run_tests}" "${opts}" --regtests-dir="${testsdir}" "${tests[@]}"
 
 	if [[ ${use_afs} == 'yes' ]]; then
 		/usr/bin/unlog
@@ -188,7 +188,7 @@ main() {
 		git clone "${tests_repo_g}" "${testsbase}"	|| exit 10
 	else
 		echo "Updating regression tests repository..."
-		update_repo "${testsdir}"
+		update_repo "${testsbase}"
 	fi
 	if [[ $? == 0 ]] || [[ ${force_run} == 'yes' ]] ; then
 		force_run='yes'
