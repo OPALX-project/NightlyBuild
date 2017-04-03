@@ -220,7 +220,7 @@ main() {
 		echo "Updating OPAL source repository..."
 		update_repo "${srcdir}"
 	fi
-	if [[ $? == 0 ]] || [[ ! -e "${opalbin}" ]] || [[ ${force_run} == 'yes' ]]; then
+	if [[ $? == 0 ]] || [[ ! -e "${opalbin}" ]]; then
 		echo "Compiling OPAL ..."
 		compile_opal	|| exit 1
 		force_run='yes'
