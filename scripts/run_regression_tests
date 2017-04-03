@@ -1,0 +1,237 @@
+#!/bin/bash
+
+declare -ri EC_ARG_ERROR=1
+declare -ri EC_GIT_ERROR=10
+
+# for Macports
+# :FIXME: do we need this?
+#         YES:	as long as readlink(1) shipped with Mac OS X does not
+#	 	support the option '-f'
+PATH+=":/opt/local/bin:/usr/local/bin"
+
+# for Mac OS 
+declare -rx MACOSX_DEPLOYMENT_TARGET=10.9
+
+declare -r GIT_SERVER='gitlab.psi.ch'
+declare -r SRC_REPOSITORY='OPAL/src.git'
+declare -r TESTS_REPOSITORY='OPAL/regression-tests.git'
+
+#exec 1> $0.stdout
+#exec 2> $0.stderr
+
+# 
+declare	force_run='no'
+declare	new_opal_binary='no'
+declare	use_afs='yes'
+declare publish_results='yes'
+declare	opts=''
+declare branch_g='master'
+declare protocol_g='https'
+
+while (( $# > 0 )); do
+	case $1 in
+		--do-publish )
+			publish_results=='yes'
+			;;
+		--dont-publish )
+			publish_results=='no'
+			;;
+		--protocol )
+			protocol_g="$2"
+			shift 1
+			;;
+		--protocol=* )
+			protocol_g="${1#*=}"
+			;;
+		--publish-dir )
+			REGTEST_WWW="$2"
+			shift 1
+			;;
+		--publish-dir=* )
+			REGTEST_WWW="${1#*=}"
+			;;
+		--use-afs )
+			use_afs='yes'
+			;;
+		-f | --force )
+			force_run='yes'
+			;;
+		-* )
+			echo "Unknown option: $1" 1>&2
+			exit
+			;;
+		* )
+			branch_g="$1"
+			;;
+	esac
+	shift 1
+done
+
+if [[ "${protocol_g}" == 'https' ]]; then
+	declare fmt_g="https://%s/%s"
+else
+	declare fmt_g="git@%s:%s"
+fi
+declare -r src_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${SRC_REPOSITORY}")
+declare -r tests_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${TESTS_REPOSITORY}")
+
+if [[ ${publish_results} == 'yes' ]]; then
+	opts+=" --do-publish"
+else
+	use_afs='no'
+fi
+
+#.............................................................................
+# directory layout
+#
+# ${PREFIX}/scripts					${bindir}
+# ${PREFIX}/workspace					${workspace}
+# ${PREFIX}/workspace/OPAL-1.6				${branchdir}
+# ${PREFIX}/workspace/OPAL-1.6/src			${srcdir}
+# ${PREFIX}/workspace/OPAL-1.6/build			${builddir}
+# ${PREFIX}/workspace/OPAL-1.6/tests			${testsbase}
+# ${PREFIX}/workspace/OPAL-1.6/tests/RegressionTests	${testsdir}
+# ${PREFIX}/workspace/OPAL-1.6/tests/conf		${confdir}
+
+declare -r abs_scriptname=$(readlink -f "$0")
+
+declare -r bindir="${abs_scriptname%/*}"
+declare -r prefix="${bindir%/*}"
+declare -r workspace="${prefix}/workspace"
+declare -r branchdir="${workspace}/${branch_g}"
+declare -r srcdir="${branchdir}/src"
+declare -r builddir="${branchdir}/build"
+declare -r testsbase="${branchdir}/tests"
+declare -r testsdir="${testsbase}/RegressionTests"
+declare -r confdir="${testsbase}/conf"
+
+declare -r keytab="${HOME}/.keytab"
+
+
+load_modules() {
+	source /opt/psi/config/profile.bash
+	module purge
+	module use unstable
+	source "${confdir}/modules.conf"
+}
+
+clone_repo() {
+	local -r repo_url="$1"
+	local -r dir="$2"
+	{
+		cd "${branchdir}"
+		git clone "${repo_rl}" "${dir}"	|| exit ${EC_GIT_ERROR}
+	}
+}
+
+update_repo() {
+	local -r repodir="$1"
+	if [[ -z "${repodir}" ]]; then
+		echo "$0: Missing argument!" 1>&2
+		exit ${EC_ARG_ERROR}
+	fi
+
+	if [[ ! -d "${repodir}" ]]; then
+		echo "${repodir}: does not exist or is not a directory!" 1>&2
+		exit ${EC_ARG_ERROR}
+	fi
+
+	cd "${repodir}"
+
+	if ! git rev-parse --is-inside-work-tree 1>/dev/null 2>&1 ; then
+		echo "${repodir}: is not a Git working directory!" 1>&2
+		exit 1
+	fi
+
+	local -r branch=$(git rev-parse --abbrev-ref HEAD)
+	if [[ "${branch}" != "${branch_g}" ]]; then
+		git checkout "${branch_g}" || exit 10
+	fi
+	git fetch || { echo "git fetch failed!" 1>&2; exit 10; }
+	local -i num_changed_files=$(git diff --name-only  "origin/${branch_g}"  | wc -l | awk '{print $1}')
+	if (( $num_changed_files == 0 )); then
+		echo "Working directory '${repodir}' is up to date!"
+		return 1
+	fi
+	git merge || { echo "git merge failed!" 1>&2; exit 11; };
+	return 0
+}
+
+compile_opal() {
+	cd "${basedir}" 	|| exit 1
+	rm -rf "${builddir}"	|| exit 1
+	mkdir "${builddir}"	|| exit 1
+	cd "${builddir}"	|| exit 1
+	cmake -DCMAKE_BUILD_TYPE=RELEASE -DENABLE_SAAMG_SOLVER=TRUE "${srcdir}"
+	make -j10 || exit 1
+}
+
+run_regressiontests() {
+	if [[ ${use_afs} == 'yes' ]]; then
+		declare -rx KRB5CCNAME=$(mktemp /tmp/krb5cc_$(id -u)_XXXXXX)
+		/usr/bin/kinit -t "${keytab}" -k "${PRINCIPAL_NAME}"	|| exit 2
+		/usr/bin/aklog						|| exit 2
+	fi
+
+	"${run_tests}" --user --run-local --tests="${tests}"
+
+	if [[ ${use_afs} == 'yes' ]]; then
+		/usr/bin/unlog
+		/usr/bin/kdestroy
+	fi
+}
+
+main() {
+	local run_tests='no'
+
+	#.....................................................................
+	if [[ ! -d "${testsdir}" ]]; then
+		echo "Cloning regression tests repository..."
+		git clone "${tests_repo_g}" "${testsbase}"	|| exit 10
+	else
+		echo "Updating regression tests repository..."
+		update_repo "${testsdir}"
+	fi
+	if [[ $? == 0 ]] || [[ ${force_run} == 'yes' ]] ; then
+		run_tests='yes'
+	fi
+
+	# read configuration and tests to run
+	if [[ ! -r "${confdir}/regression_tests.conf" ]]; then
+		echo "Configuration of regression tests cannot be read!" 1>&2
+		exit 2
+	fi
+	source "${confdir}/regression_tests.conf"
+
+	# these shell variable must be set for the tests
+	declare -rx OPAL_EXE_PATH="${builddir}/src"
+	declare -r opalbin="${builddir}/src/opal"
+
+	declare -r run_tests="${testsdir}/run/run-reg-tests.py"
+
+	if [[ -z "${REGTEST_WWW}" ]]; then
+		REGTEST_WWW="${PUBLISH_DIR}/${branch_g}"
+	fi
+	load_modules
+
+	#.....................................................................
+	if [[ ! -d "${srcdir}" ]]; then
+		echo "Cloning OPAL source repository..."
+		git clone "${src_repo_g}" "${srcdir}"	|| exit 10
+	else
+		echo "Updating OPAL source repository..."
+		update_repo "${srcdir}"
+	fi
+	if [[ $? == 0 ]] || [[ ! -e "${opalbin}" ]] || [[ ${force_run} == 'yes' ]]; then
+		echo "Compiling OPAL ..."
+		compile_opal	|| exit 1
+		run_tests='yes'
+	fi
+
+	if [[ $? == 0 ]] || [[ ${run_tests} == 'yes' ]] ; then
+		echo "Running regression tests..."
+		run_regressiontests || exit 1
+	fi
+}
+
+main
