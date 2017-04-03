@@ -150,7 +150,7 @@ update_repo() {
 		echo "Working directory '${repodir}' is up to date!"
 		return 1
 	fi
-	git merge || { echo "git merge failed!" 1>&2; exit 11; };
+	git merge "origin/${branch_g}" || { echo "git merge failed!" 1>&2; exit 11; };
 	return 0
 }
 
@@ -170,7 +170,7 @@ run_regressiontests() {
 		/usr/bin/aklog						|| exit 2
 	fi
 
-	"${run_tests}" --user --run-local --tests="${tests}"
+	"${run_tests}" "${opts}" "${tests[@]}"
 
 	if [[ ${use_afs} == 'yes' ]]; then
 		/usr/bin/unlog
