@@ -109,9 +109,6 @@ declare -r keytab="${HOME}/.keytab"
 
 
 load_modules() {
-	source /opt/psi/config/profile.bash
-	module purge
-	module use unstable
 	source "${confdir}/modules.conf"
 }
 
@@ -182,7 +179,6 @@ run_regressiontests() {
 }
 
 main() {
-	local run_tests='no'
 
 	#.....................................................................
 	if [[ ! -d "${testsdir}" ]]; then
@@ -193,7 +189,7 @@ main() {
 		update_repo "${testsdir}"
 	fi
 	if [[ $? == 0 ]] || [[ ${force_run} == 'yes' ]] ; then
-		run_tests='yes'
+		force_run='yes'
 	fi
 
 	# read configuration and tests to run
@@ -225,10 +221,10 @@ main() {
 	if [[ $? == 0 ]] || [[ ! -e "${opalbin}" ]] || [[ ${force_run} == 'yes' ]]; then
 		echo "Compiling OPAL ..."
 		compile_opal	|| exit 1
-		run_tests='yes'
+		force_run='yes'
 	fi
 
-	if [[ $? == 0 ]] || [[ ${run_tests} == 'yes' ]] ; then
+	if [[ $? == 0 ]] || [[ ${force_run} == 'yes' ]] ; then
 		echo "Running regression tests..."
 		run_regressiontests || exit 1
 	fi
