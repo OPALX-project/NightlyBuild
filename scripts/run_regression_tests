@@ -27,11 +27,15 @@ declare publish_results='yes'
 declare	opts=''
 declare branch_g='master'
 declare protocol_g='https'
+declare compile_only='no'
 
 declare -x REGTEST_WWW=''
 
 while (( $# > 0 )); do
 	case $1 in
+		--compile-only )
+			compile_only='yes'
+			;;
 		--do-publish )
 			publish_results=='yes'
 			;;
@@ -224,6 +228,10 @@ main() {
 		echo "Compiling OPAL ..."
 		compile_opal	|| exit 1
 		force_run='yes'
+	fi
+	if [[ "${compile_only}" == 'yes' ]]; then
+		echo "Compiling OPAL done ..."
+		exit 0
 	fi
 
 	if [[ ${force_run} == 'yes' ]] ; then
