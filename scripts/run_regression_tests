@@ -77,9 +77,8 @@ fi
 declare -r src_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${SRC_REPOSITORY}")
 declare -r tests_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${TESTS_REPOSITORY}")
 
-if [[ ${publish_results} == 'yes' ]]; then
-	opts+=" --do-publish"
-else
+if [[ ${publish_results} != 'yes' ]]; then
+	opts+=" --dont-publish"
 	use_afs='no'
 fi
 
@@ -172,7 +171,8 @@ run_regressiontests() {
 		/usr/bin/aklog						|| exit 2
 	fi
 
-	"${run_tests}" "${opts}" --regtests-dir="${testsdir}" "${tests[@]}"
+	opts+=" --regtests-dir=${testsdir}"
+	"${run_tests}" ${opts} "${tests[@]}"
 
 	if [[ ${use_afs} == 'yes' ]]; then
 		/usr/bin/unlog
@@ -205,7 +205,7 @@ main() {
 	declare -rx OPAL_EXE_PATH="${builddir}/src"
 	declare -r opalbin="${builddir}/src/opal"
 
-	declare -r run_tests="${binir}/run-reg-tests.py"
+	declare -r run_tests="${bindir}/run-reg-tests.py"
 
 	if [[ -z "${REGTEST_WWW}" ]]; then
 		REGTEST_WWW="${PUBLISH_DIR}/${branch_g}"
@@ -226,7 +226,7 @@ main() {
 		force_run='yes'
 	fi
 
-	if [[ $? == 0 ]] || [[ ${force_run} == 'yes' ]] ; then
+	if [[ ${force_run} == 'yes' ]] ; then
 		echo "Running regression tests..."
 		run_regressiontests || exit 1
 	fi
