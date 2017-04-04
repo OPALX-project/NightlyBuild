@@ -168,6 +168,8 @@ def main(argv):
 			default='True', help='do not publish results to web')
     parser.add_argument('--regtests-dir', dest='regdir', type=str,
 			help='base directory with regression tests')
+    parser.add_argument('--regtests-www', dest='regtest_www', type=str,
+			help='publish directory')
 
     args = parser.parse_args()
     print args
@@ -177,8 +179,11 @@ def main(argv):
     if args.regdir:
         regdir = args.regdir
 
-    www_folder = os.getenv("REGTEST_WWW")
-    if args.publish_results and www_folder is None:
+    if args.regtest_www:
+        www_folfer = args.regtest_www
+    else:
+        www_folder = os.getenv("REGTEST_WWW")
+    if args.publish_results == True and www_folder is None:
         rep.appendReport("Error: REGTEST_WWW not set")
         bailout(runAsUser)
         return
