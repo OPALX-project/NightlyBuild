@@ -170,24 +170,32 @@ def main(argv):
 			help='base directory with regression tests')
     parser.add_argument('--regtests-www', dest='regtest_www', type=str,
 			help='publish directory')
+    parser.add_argument('--opal-exe-path', dest='opal_exe_path', type=str,
+			help='directory where OPAL binary is stored')
 
     args = parser.parse_args()
     print args
 
     runtests = args.tests
 
+    # get directory where regression tests are installed
     if args.regdir:
         regdir = args.regdir
 
+    # get directorx where to store results
     if args.regtest_www:
-        www_folfer = args.regtest_www
+        www_folder = args.regtest_www
     else:
         www_folder = os.getenv("REGTEST_WWW")
+
     if args.publish_results == True and www_folder is None:
         rep.appendReport("Error: REGTEST_WWW not set")
         bailout(runAsUser)
         return
 
+    # get directory whith OPAL binary
+    if args.opal_exe_path:
+        os.environ['OPAL_EXE_PATH'] = args.opal_exe_path
     if not os.getenv("OPAL_EXE_PATH"):
         rep.appendReport("Error: OPAL_EXE_PATH not set")
         bailout(runAsUser)
@@ -197,6 +205,7 @@ def main(argv):
         rep.appendReport("Error: OPAL_EXE_PATH is invalid")
         bailout(runAsUser)
         return
+    # done with the arguments
 
     rep.appendReport("\n")
     rep.appendReport("Start Regression Test on %s \n" % datetime.datetime.today())
@@ -227,21 +236,33 @@ def main(argv):
     if args.publish_results:
         failedtests = rep.NrFailed()
         brokentests = rep.NrBroken()
-        webfilename = "results_%s_%s_%s.xml" % (d.day, d.month, d.year)
-        shutil.copy ("results.xml", www_folder + "/" + webfilename)
-        subprocess.getoutput("cp -rf results/" + d.isoformat() + "/plots " + www_folder + "/plots_" + d.isoformat())
-        indexhtml = open(www_folder + "/index.html").readlines()
+        webfilename = "results_" + d.isoformat() + ".xml"
+        shutil.copy ("results.xml", os.path.join (www_folder, webfilename))
+        srcdir = os.path.join ("results", d.isoformat(), "plots")
+        dstdir = os.path.join (www_folder, "plots_" + d.isoformat())
+        subprocess.getoutput("cp -rf " + srcdir + " " + dstdir)
+	index_fname = os.path.join (www_folder, "index.html")
+	if not os.path.exists(index_fname):
+	    shutil.copy (os.path.join (rundir, "index.html"), index_fname)
+
+        indexhtml = open(index_fname).readlines()
         for line in range(len(indexhtml)):
             if "insert here" in indexhtml[line]:
                 m = re.search(webfilename, indexhtml[line + 1])
 		fmt="<a href=\"%s\">%s.%s.%s</a> [passed:%d | broken:%d | failed:%d | total:%d] <br/>\n"
                 if m != None:
-                    indexhtml[line+1] = fmt % (webfilename, d.day, d.month, d.year, totalNrPassed, brokentests, failedtests, totalNrTests)
+                    indexhtml[line+1] = fmt % (
+				webfilename,
+				d.day, d.month, d.year,
+				totalNrPassed, brokentests, failedtests, totalNrTests)
                 else:
-                    indexhtml.insert(line+1, fmt % (webfilename, d.day, d.month, d.year, totalNrPassed, brokentests, failedtests, totalNrTests))
+                    indexhtml.insert(line+1, fmt % (
+				webfilename,
+				d.day, d.month, d.year,
+				totalNrPassed, brokentests, failedtests, totalNrTests))
 
                 break
-        indexhtmlout = open(www_folder + "/index.html", "w")
+        indexhtmlout = open(index_fname, "w")
         indexhtmlout.writelines(indexhtml)
         indexhtmlout.close()
         #update xslt formating file
