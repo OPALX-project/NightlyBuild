@@ -15,9 +15,6 @@ from reporter import TempXMLElement
 
 from regressiontest import RegressionTest
 
-from documentation import OpalDocumentation
-from documentation import OpalDoxygen
-
 from tools import readfile
 from tools import module_load
 from tools import sendmails
@@ -96,21 +93,14 @@ def callback(arg, dirname, fnames):
             runtests.remove(simname)
             runtests.append("DONE")
 
-def bailout(runAsUser):
+def bailout():
     rep = Reporter()
     d = datetime.date.today()
     rep.appendReport("==========================================================\n")
     rep.appendReport("Finished Regression Test on %s \n" % datetime.datetime.today())
-    rep.appendReport("\n")
-    rep.appendReport("http://amas.web.psi.ch/regressiontests/results_%s_%s_%s.xml \n\n" % (d.day, d.month, d.year))
 
     #send/print report
-    if not runAsUser:
-        os.chdir(sys.path[0])
-        emails = readfile("email-list")
-        sendmails(emails, rep.getReport(), totalNrTests)
-    else:
-        print (rep.getReport())
+    print (rep.getReport())
 
 def addDate(rep):
     date_report = TempXMLElement("Date")
@@ -156,7 +146,6 @@ def main(argv):
     global totalNrTests
     totalNrTests = 0
     totalNrPassed = 0
-    runAsUser = True
     runtests = list()
     run_with_tests = True
     run_local = True
@@ -190,7 +179,7 @@ def main(argv):
 
     if args.publish_results == True and www_folder is None:
         rep.appendReport("Error: REGTEST_WWW not set")
-        bailout(runAsUser)
+        bailout()
         return
 
     # get directory whith OPAL binary
@@ -198,12 +187,12 @@ def main(argv):
         os.environ['OPAL_EXE_PATH'] = args.opal_exe_path
     if not os.getenv("OPAL_EXE_PATH"):
         rep.appendReport("Error: OPAL_EXE_PATH not set")
-        bailout(runAsUser)
+        bailout()
         return
 
     if not os.path.isfile(os.getenv("OPAL_EXE_PATH") + "/opal"):
         rep.appendReport("Error: OPAL_EXE_PATH is invalid")
-        bailout(runAsUser)
+        bailout()
         return
     # done with the arguments
 
@@ -268,13 +257,6 @@ def main(argv):
         #update xslt formating file
         shutil.copy (rundir + "/results.xslt", www_folder + "/")
 
-        if not runAsUser:
-            #update manual
-            OpalDocumentation()
-
-            #update doxygen
-            OpalDoxygen()
-
     #move xml results to result-dir
     if os.path.isfile('results.xml'):
         resultdir = regdir + "/results/" + d.isoformat()
@@ -283,7 +265,7 @@ def main(argv):
 
         subprocess.getoutput("cp -rf " + "results.xml " + resultdir)
 
-    bailout(runAsUser)
+    bailout()
 
 #call main
 if __name__ == "__main__":
