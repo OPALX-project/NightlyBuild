@@ -24,10 +24,12 @@ declare	force_run='no'
 declare	new_opal_binary='no'
 declare	use_afs='yes'
 declare publish_results='yes'
-declare	opts=''
-declare branch_g='master'
+declare	-a opts=()
+declare	branch_g='master'
 declare protocol_g='https'
 declare compile_only='no'
+declare enable_dks='no'
+declare use_dks='no'
 
 declare -x REGTEST_WWW=''
 
@@ -41,6 +43,13 @@ while (( $# > 0 )); do
 			;;
 		--dont-publish )
 			publish_results=='no'
+			;;
+		--enable-dks )
+			enable_dks='yes'
+			;;
+		--use-dks )
+			use_dks='yes'
+			opts+=( '--use-dks' )
 			;;
 		--protocol )
 			protocol_g="$2"
@@ -82,7 +91,7 @@ declare -r src_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${SRC_REPOSITORY}")
 declare -r tests_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${TESTS_REPOSITORY}")
 
 if [[ ${publish_results} != 'yes' ]]; then
-	opts+=" --dont-publish"
+	opts+=( "--dont-publish" )
 	use_afs='no'
 fi
 
@@ -105,12 +114,20 @@ declare -r prefix="${bindir%/*}"
 declare -r workspace="${prefix}/workspace"
 declare -r branchdir="${workspace}/${branch_g}"
 declare -r srcdir="${branchdir}/src"
-declare -r builddir="${branchdir}/build"
+declare    builddir="${branchdir}/build"
 declare -r testsbase="${branchdir}/tests"
 declare -r testsdir="${testsbase}/RegressionTests"
 declare -r confdir="${testsbase}/conf"
 
 declare -r keytab="${HOME}/.keytab"
+
+declare -a cmake_config=()
+cmake_config+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
+cmake_config+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
+
+if [[ "${enable_dks}" == 'yes' ]]; then
+	cmake_config+=( "-DENABLE_DKS=TRUE" )
+fi
 
 
 load_modules() {
@@ -164,21 +181,23 @@ compile_opal() {
 	rm -rf "${builddir}"	|| exit 1
 	mkdir "${builddir}"	|| exit 1
 	cd "${builddir}"	|| exit 1
-	cmake -DCMAKE_BUILD_TYPE=RELEASE -DENABLE_SAAMG_SOLVER=TRUE "${srcdir}"
-	make -j10 || exit 1
+	cmake "${cmake_config[@]}" "${srcdir}"
+	make -j5 || exit 1
 }
 
 run_regressiontests() {
-	if [[ ${use_afs} == 'yes' ]]; then
+	if [[ ${use_afs} == 'yes' ]] && [[ -r "${keytab}" ]]; then
 		declare -rx KRB5CCNAME=$(mktemp /tmp/krb5cc_$(id -u)_XXXXXX)
 		/usr/bin/kinit -t "${keytab}" -k "${PRINCIPAL_NAME}"	|| exit 2
 		/usr/bin/aklog						|| exit 2
 	fi
 
-	opts+=" --regtests-dir=${testsdir}"
+	mkdir -p "${REGTEST_WWW}"
+
+	opts+=( "--regtests-dir=${testsdir}" )
 	"${run_tests}" ${opts} "${tests[@]}"
 
-	if [[ ${use_afs} == 'yes' ]]; then
+	if [[ ${use_afs} == 'yes' ]] && [[ -r "${keytab}" ]]; then
 		/usr/bin/unlog
 		/usr/bin/kdestroy
 	fi
@@ -214,6 +233,13 @@ main() {
 	if [[ -z "${REGTEST_WWW}" ]]; then
 		REGTEST_WWW="${PUBLISH_DIR}/${branch_g}"
 	fi
+	if [[ "${enable_dks}" == 'yes' ]]; then
+		REGTEST_WWW+="-DKS"
+		if [[ "${use_dks}" == 'yes' ]]; then
+			REGTEST_WWW+="-USED"
+		fi
+	fi
+
 	load_modules
 
 	#.....................................................................
@@ -226,7 +252,7 @@ main() {
 	fi
 	if [[ $? == 0 ]] || [[ ! -e "${opalbin}" ]]; then
 		echo "Compiling OPAL ..."
-		compile_opal	|| exit 1
+		compile_opal || exit 1
 		force_run='yes'
 	fi
 	if [[ "${compile_only}" == 'yes' ]]; then
