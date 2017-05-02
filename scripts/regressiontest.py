@@ -18,9 +18,10 @@ from tools import readStatHeader
 
 class RegressionTest:
 
-    def __init__(self, dir, simname, resultdir):
+    def __init__(self, dir, simname, args, resultdir):
         self.dirname = dir
         self.simname = simname
+        self.args = args
         self.resultdir = resultdir
         self.jobnr = -1
         self.totalNrTests = 0
@@ -28,7 +29,8 @@ class RegressionTest:
         self.queue = ""
 
     def submitToSGE(self):
-        #FIXME: we could create a sge file on the fly if no sge is specified for a give test ("default sge")
+        # FIXME: we could create a sge file on the fly if no sge is specified
+        # for a give test ("default sge")
         qsub_command = "qsub " + self.queue + " " + self.simname + ".sge -v REG_TEST_DIR=" + self.dirname + ",OPAL_EXE_PATH=" + os.getenv("OPAL_EXE_PATH")
         submit_out = subprocess.getoutput(qsub_command)
         self.jobnr = str.split(submit_out, " ")[2]
@@ -71,7 +73,8 @@ class RegressionTest:
         if not os.access(self.simname+".local", os.X_OK):
             rep = Reporter()
             rep.appendReport("Error: "+self.simname+".local file could not be executed\n")
-        run = "./" + self.simname + ".local | tee " + self.simname + "-RT.o"
+        run = "./" + self.simname + ".local " + self.args + " | tee " + self.simname + "-RT.o"
+	print (run)
         print(subprocess.getoutput(run))
         self.jobnr = 0
 
@@ -547,7 +550,8 @@ class LbalTest:
             lbal.append(vals)
 
     """
-    method performs a test for "var" with reference file in a specific mode ("quant") for a specific accuracy ("eps")
+    method performs a test for "var" with reference file in a specific
+    mode ("quant") for a specific accuracy ("eps")
     """
     def performTest(self, root):
 
