@@ -25,6 +25,8 @@ from tools import getRevisionOpal
 totalNrTests = 0
 totalNrPassed = 0
 
+opal_args = ""
+
 """
 This method traverses the directory tree. It will check and execute regression tests for the following directory-layouts:
 
@@ -82,7 +84,7 @@ def callback(arg, dirname, fnames):
     simulation_report.addAttribute("name", simname)
     simulation_report.addAttribute("date", "%s" % d)
 
-    rt = RegressionTest(dirname, simname, resultdir)
+    rt = RegressionTest(dirname, simname, opal_args, resultdir)
     rt.run(simulation_report, arg[1], arg[2])
     totalNrTests += rt.totalNrTests
     totalNrPassed += rt.totalNrPassed
@@ -144,6 +146,7 @@ def main(argv):
 
     global totalNrPassed
     global totalNrTests
+    global opal_args
     totalNrTests = 0
     totalNrPassed = 0
     runtests = list()
@@ -161,6 +164,8 @@ def main(argv):
 			help='publish directory')
     parser.add_argument('--opal-exe-path', dest='opal_exe_path', type=str,
 			help='directory where OPAL binary is stored')
+    parser.add_argument('--use-dks', dest='use_dks', action='store_true',
+			default='False', help='use dynamic kernel scheduler')
 
     args = parser.parse_args()
     print args
@@ -194,6 +199,10 @@ def main(argv):
         rep.appendReport("Error: OPAL_EXE_PATH is invalid")
         bailout()
         return
+
+    if args.use_dks == True:
+        opal_args = " --use-dks"
+
     # done with the arguments
 
     rep.appendReport("\n")
