@@ -20,43 +20,44 @@ declare -r TESTS_REPOSITORY='OPAL/regression-tests.git'
 #exec 2> $0.stderr
 
 # 
-declare	force_run='no'
-declare	new_opal_binary='no'
-declare	use_afs='yes'
-declare publish_results='yes'
-declare	-a opts=()
-declare	branch_g='master'
-declare protocol_g='https'
-declare compile_only='no'
-declare enable_dks='no'
-declare use_dks='no'
+declare	arg_force_run='no'
+declare arg_publish_results='yes'
+declare	arg_branch='master'
+declare arg_protocol='https'
+declare arg_compile_only='no'
+declare arg_enable_dks='no'
+declare arg_use_dks='no'
 
 declare -x REGTEST_WWW=''
+
+# arguments passed to the regression test runner
+declare	-a opts=()
 
 while (( $# > 0 )); do
 	case $1 in
 		--compile-only )
-			compile_only='yes'
+			arg_compile_only='yes'
 			;;
 		--do-publish )
-			publish_results=='yes'
+			arg_publish_results=='yes'
 			;;
 		--dont-publish )
-			publish_results=='no'
+			arg_publish_results=='no'
 			;;
 		--enable-dks )
-			enable_dks='yes'
+			arg_enable_dks='yes'
 			;;
 		--use-dks )
-			use_dks='yes'
+			arg_enable_dks='yes'
+			arg_use_dks='yes'
 			opts+=( '--use-dks' )
 			;;
 		--protocol )
-			protocol_g="$2"
+			arg_protocol="$2"
 			shift 1
 			;;
 		--protocol=* )
-			protocol_g="${1#*=}"
+			arg_protocol="${1#*=}"
 			;;
 		--publish-dir )
 			REGTEST_WWW="$2"
@@ -65,24 +66,30 @@ while (( $# > 0 )); do
 		--publish-dir=* )
 			REGTEST_WWW="${1#*=}"
 			;;
-		--use-afs )
-			use_afs='yes'
-			;;
 		-f | --force )
-			force_run='yes'
+			arg_force_run='yes'
 			;;
 		-* )
 			echo "Unknown option: $1" 1>&2
 			exit
 			;;
 		* )
-			branch_g="$1"
+			arg_branch="$1"
 			;;
 	esac
 	shift 1
 done
 
-if [[ "${protocol_g}" == 'https' ]]; then
+case "${arg_protocol}" in
+	https | git )
+		:
+		;;
+	* )
+		echo "Protocoll for Git must be either 'https' or 'git'!" 1>&2 && exit ${EC_ARG_ERROR}
+		;;
+esac
+
+if [[ "${arg_protocol}" == 'https' ]]; then
 	declare fmt_g="https://%s/%s"
 else
 	declare fmt_g="git@%s:%s"
@@ -90,10 +97,21 @@ fi
 declare -r src_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${SRC_REPOSITORY}")
 declare -r tests_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${TESTS_REPOSITORY}")
 
-if [[ ${publish_results} != 'yes' ]]; then
+if [[ ${arg_publish_results} != 'yes' ]]; then
 	opts+=( "--dont-publish" )
-	use_afs='no'
 fi
+
+declare -a cmake_config=()
+cmake_config+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
+cmake_config+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
+
+if [[ "${arg_enable_dks}" == 'yes' ]]; then
+	cmake_config+=( "-DENABLE_DKS=TRUE" )
+fi
+
+declare branch_subdir="${arg_branch}"
+[[ "${arg_enable_dks}" == 'yes' ]] && branch_subdir+='-DKS'
+[[ "${arg_enable_dks}" == 'yes' ]] && [[ "${arg_use_dks}" == 'yes' ]] && branch_subdir+='-USED'
 
 #.............................................................................
 # directory layout
@@ -112,7 +130,7 @@ declare -r abs_scriptname=$(readlink -f "$0")
 declare -r bindir="${abs_scriptname%/*}"
 declare -r prefix="${bindir%/*}"
 declare -r workspace="${prefix}/workspace"
-declare -r branchdir="${workspace}/${branch_g}"
+declare -r branchdir="${workspace}/${branch_subdir}"
 declare -r srcdir="${branchdir}/src"
 declare    builddir="${branchdir}/build"
 declare -r testsbase="${branchdir}/tests"
@@ -120,14 +138,6 @@ declare -r testsdir="${testsbase}/RegressionTests"
 declare -r confdir="${testsbase}/conf"
 
 declare -r keytab="${HOME}/.keytab"
-
-declare -a cmake_config=()
-cmake_config+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
-cmake_config+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
-
-if [[ "${enable_dks}" == 'yes' ]]; then
-	cmake_config+=( "-DENABLE_DKS=TRUE" )
-fi
 
 
 load_modules() {
@@ -138,8 +148,9 @@ clone_repo() {
 	local -r repo_url="$1"
 	local -r dir="$2"
 	{
-		cd "${branchdir}"
-		git clone "${repo_rl}" "${dir}"	|| exit ${EC_GIT_ERROR}
+		git clone "${repo_url}" "${dir}"|| exit ${EC_GIT_ERROR}
+		cd "${dir}"
+		git checkout "${arg_branch}" 	|| exit ${EC_GIT_ERROR}
 	}
 }
 
@@ -163,16 +174,16 @@ update_repo() {
 	fi
 
 	local -r branch=$(git rev-parse --abbrev-ref HEAD)
-	if [[ "${branch}" != "${branch_g}" ]]; then
-		git checkout "${branch_g}" || exit 10
+	if [[ "${branch}" != "${arg_branch}" ]]; then
+		git checkout "${arg_branch}" || exit 10
 	fi
 	git fetch || { echo "git fetch failed!" 1>&2; exit 10; }
-	local -i num_changed_files=$(git diff --name-only  "origin/${branch_g}"  | wc -l | awk '{print $1}')
+	local -i num_changed_files=$(git diff --name-only  "origin/${arg_branch}"  | wc -l | awk '{print $1}')
 	if (( $num_changed_files == 0 )); then
 		echo "Working directory '${repodir}' is up to date!"
 		return 1
 	fi
-	git merge "origin/${branch_g}" || { echo "git merge failed!" 1>&2; exit 11; };
+	git merge "origin/${arg_branch}" || { echo "git merge failed!" 1>&2; exit 11; };
 	return 0
 }
 
@@ -182,11 +193,11 @@ compile_opal() {
 	mkdir "${builddir}"	|| exit 1
 	cd "${builddir}"	|| exit 1
 	cmake "${cmake_config[@]}" "${srcdir}"
-	make -j5 || exit 1
+	time make -j5 || exit 1
 }
 
 run_regressiontests() {
-	if [[ ${use_afs} == 'yes' ]] && [[ -r "${keytab}" ]]; then
+	if [[ -r "${keytab}" ]]; then
 		declare -rx KRB5CCNAME=$(mktemp /tmp/krb5cc_$(id -u)_XXXXXX)
 		/usr/bin/kinit -t "${keytab}" -k "${PRINCIPAL_NAME}"	|| exit 2
 		/usr/bin/aklog						|| exit 2
@@ -197,7 +208,7 @@ run_regressiontests() {
 	opts+=( "--regtests-dir=${testsdir}" )
 	"${run_tests}" ${opts} "${tests[@]}"
 
-	if [[ ${use_afs} == 'yes' ]] && [[ -r "${keytab}" ]]; then
+	if [[ -r "${keytab}" ]]; then
 		/usr/bin/unlog
 		/usr/bin/kdestroy
 	fi
@@ -208,13 +219,13 @@ main() {
 	#.....................................................................
 	if [[ ! -d "${testsdir}" ]]; then
 		echo "Cloning regression tests repository..."
-		git clone "${tests_repo_g}" "${testsbase}"	|| exit 10
+		clone_repo "${tests_repo_g}" "${testsbase}"	|| exit ${EC_GIT_ERROR}
 	else
 		echo "Updating regression tests repository..."
 		update_repo "${testsbase}"
 	fi
-	if [[ $? == 0 ]] || [[ ${force_run} == 'yes' ]] ; then
-		force_run='yes'
+	if [[ $? == 0 ]] || [[ ${arg_force_run} == 'yes' ]] ; then
+		arg_force_run='yes'
 	fi
 
 	# read configuration and tests to run
@@ -231,11 +242,11 @@ main() {
 	declare -r run_tests="${bindir}/run-reg-tests.py"
 
 	if [[ -z "${REGTEST_WWW}" ]]; then
-		REGTEST_WWW="${PUBLISH_DIR}/${branch_g}"
+		REGTEST_WWW="${PUBLISH_DIR}/${arg_branch}"
 	fi
-	if [[ "${enable_dks}" == 'yes' ]]; then
+	if [[ "${arg_enable_dks}" == 'yes' ]]; then
 		REGTEST_WWW+="-DKS"
-		if [[ "${use_dks}" == 'yes' ]]; then
+		if [[ "${arg_use_dks}" == 'yes' ]]; then
 			REGTEST_WWW+="-USED"
 		fi
 	fi
@@ -245,7 +256,7 @@ main() {
 	#.....................................................................
 	if [[ ! -d "${srcdir}" ]]; then
 		echo "Cloning OPAL source repository..."
-		git clone "${src_repo_g}" "${srcdir}"	|| exit 10
+		clone_repo "${src_repo_g}" "${srcdir}"	|| exit ${EC_GIT_ERROR}
 	else
 		echo "Updating OPAL source repository..."
 		update_repo "${srcdir}"
@@ -253,14 +264,14 @@ main() {
 	if [[ $? == 0 ]] || [[ ! -e "${opalbin}" ]]; then
 		echo "Compiling OPAL ..."
 		compile_opal || exit 1
-		force_run='yes'
+		arg_force_run='yes'
 	fi
-	if [[ "${compile_only}" == 'yes' ]]; then
+	if [[ "${arg_compile_only}" == 'yes' ]]; then
 		echo "Compiling OPAL done ..."
 		exit 0
 	fi
 
-	if [[ ${force_run} == 'yes' ]] ; then
+	if [[ ${arg_force_run} == 'yes' ]] ; then
 		echo "Running regression tests..."
 		run_regressiontests || exit 1
 	fi
