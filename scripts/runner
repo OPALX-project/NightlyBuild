@@ -206,7 +206,7 @@ run_regressiontests() {
 	mkdir -p "${REGTEST_WWW}"
 
 	opts+=( "--regtests-dir=${testsdir}" )
-	"${run_tests}" ${opts} "${tests[@]}"
+	"${run_tests}" "${opts[@]}" "${tests[@]}"
 
 	if [[ -r "${keytab}" ]]; then
 		/usr/bin/unlog
