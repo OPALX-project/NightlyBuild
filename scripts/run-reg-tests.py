@@ -59,7 +59,6 @@ def callback(arg, dirname, fnames):
     # check if all files required are available
     if not (os.path.isfile(dirname + "/" + simname + ".in") and \
        os.path.isfile(dirname + "/" + simname + ".rt") and \
-       os.path.isfile(dirname + "/" + simname + ".sge") and \
        os.path.isdir(dirname + "/" + "reference")):
         return
 
