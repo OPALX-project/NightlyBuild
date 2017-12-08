@@ -172,10 +172,10 @@ def genplot(simname, var):
 
     lines = readfile(simnames)
 
-    m = re.search('(.* git rev\. [A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine]);
+    m = re.search('(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine]);
 
     if (m != None):
-        opalRevision = m.group(1)
+        opalRevision = m.group(1) + m.group(2)
     else:
         opalRevision = lines[readLines + revLine]
 
@@ -205,10 +205,10 @@ def genplot(simname, var):
 
     lines = readfile(reference)
 
-    m = re.search('(.* git rev\. [A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine]);
+    m = re.search('(.* git rev\. )#?([A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine]);
 
     if (m != None):
-        refRevision = m.group(1)
+        refRevision = m.group(1) + m.group(2)
     else:
         m = re.search('(.* svn rev\. [A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine]);
         if (m != None):
