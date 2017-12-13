@@ -7,6 +7,7 @@ import time
 import sys
 import shutil
 import pathlib
+import threading
 
 from reporter import Reporter
 from reporter import TempXMLElement
@@ -67,7 +68,6 @@ class RegressionTest:
                 )
                 sys.exc_clear()
 
-
     def mpirun(self):
         if not os.access (self.simname+".local", os.X_OK):
             rep = Reporter ()
@@ -75,14 +75,15 @@ class RegressionTest:
 
         cmd = [ "./" + self.simname + ".local" ]
         cmd += self.args
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=1800)
-        with open(self.simname + "-RT.o", "wb") as output_file:
-            while proc.poll() is None:
-                line = proc.stdout.readline()
-                if line:
-                    print (str(line.strip()))
-                    output_file.write (line)
-
+        with open(self.simname + "-RT.o", "wb") as f:
+            print ("Running test: " + cmd[0])
+            sys.stdout.flush ()
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = proc.communicate (timeout=900)
+            print (out.decode ('utf-8'))
+            print (err.decode ('utf-8'))
+            f.write (out)
+            f.write (err)
         self.jobnr = 0
 
 
