@@ -1,10 +1,7 @@
 #!/bin/env python
 import datetime
 import sys
-if sys.version_info < (3,0):
-    import commands as subprocess
-else:
-    import subprocess
+import subprocess
 import os
 import shutil
 import re
