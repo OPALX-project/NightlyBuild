@@ -1,10 +1,7 @@
-#!/usr/bin/python
+#!/bin/env python
 import datetime
 import sys
-if sys.version_info < (3,0):
-    import commands as subprocess
-else:
-    import subprocess
+import subprocess
 import os
 import shutil
 import re
@@ -156,18 +153,17 @@ def main(argv):
     parser.add_argument('tests', metavar='tests', type=str, nargs='+',
                     help='a regression test to run')
     parser.add_argument('--dont-publish', dest='publish_results', action='store_false',
-			default='True', help='do not publish results to web')
+                        default='True', help='do not publish results to web')
     parser.add_argument('--regtests-dir', dest='regdir', type=str,
-			help='base directory with regression tests')
+                        help='base directory with regression tests')
     parser.add_argument('--regtests-www', dest='regtest_www', type=str,
-			help='publish directory')
+                        help='publish directory')
     parser.add_argument('--opal-exe-path', dest='opal_exe_path', type=str,
-			help='directory where OPAL binary is stored')
+                        help='directory where OPAL binary is stored')
     parser.add_argument('--use-dks', dest='use_dks', action='store_true',
-			default='False', help='use dynamic kernel scheduler')
+                        default='False', help='use dynamic kernel scheduler')
 
     args = parser.parse_args()
-    print args
 
     runtests = args.tests
 
@@ -181,10 +177,11 @@ def main(argv):
     else:
         www_folder = os.getenv("REGTEST_WWW")
 
-    if args.publish_results == True and www_folder is None:
+    if (args.publish_results) and (www_folder == None):
         rep.appendReport("Error: REGTEST_WWW not set")
         bailout()
         return
+
 
     # get directory whith OPAL binary
     if args.opal_exe_path:
@@ -252,17 +249,17 @@ def main(argv):
         for line in range(len(indexhtml)):
             if "insert here" in indexhtml[line]:
                 m = re.search(webfilename, indexhtml[line + 1])
-		fmt="<a href=\"%s\">%s.%s.%s</a> [passed:%d | broken:%d | failed:%d | total:%d] <br/>\n"
+                fmt="<a href=\"%s\">%s.%s.%s</a> [passed:%d | broken:%d | failed:%d | total:%d] <br/>\n"
                 if m != None:
                     indexhtml[line+1] = fmt % (
-				webfilename,
-				d.day, d.month, d.year,
-				totalNrPassed, brokentests, failedtests, totalNrTests)
+                                webfilename,
+                                d.day, d.month, d.year,
+                                totalNrPassed, brokentests, failedtests, totalNrTests)
                 else:
                     indexhtml.insert(line+1, fmt % (
-				webfilename,
-				d.day, d.month, d.year,
-				totalNrPassed, brokentests, failedtests, totalNrTests))
+                                webfilename,
+                                d.day, d.month, d.year,
+                                totalNrPassed, brokentests, failedtests, totalNrTests))
 
                 break
         indexhtmlout = open(index_fname, "w")

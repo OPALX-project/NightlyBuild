@@ -165,7 +165,7 @@ def genplot(simname, var):
     numScalars = len(header['parameters'])
     sCol = header['columns']['s']['column']
 
-    if header['columns'].has_key(var):
+    if var in header['columns']:
         varData = header['columns'][var]
         varCol = varData['column']
         varUnit = varData['units']
@@ -198,7 +198,7 @@ def genplot(simname, var):
     numScalars = len(header['parameters'])
     sCol = header['columns']['s']['column']
 
-    if header['columns'].has_key(var):
+    if var in header['columns']:
         varData = header['columns'][var]
         varCol = varData['column']
         varUnit = varData['units']

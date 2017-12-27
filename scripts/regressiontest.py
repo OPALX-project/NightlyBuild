@@ -1,13 +1,13 @@
 import sys
-if sys.version_info < (3,0):
-    import commands as subprocess
-else:
-    import subprocess
+import subprocess
 import glob
 import datetime
 import os
 import time
 import sys
+import shutil
+import pathlib
+import threading
 
 from reporter import Reporter
 from reporter import TempXMLElement
@@ -68,14 +68,22 @@ class RegressionTest:
                 )
                 sys.exc_clear()
 
-
     def mpirun(self):
-        if not os.access(self.simname+".local", os.X_OK):
-            rep = Reporter()
-            rep.appendReport("Error: "+self.simname+".local file could not be executed\n")
-        run = "./" + self.simname + ".local " + self.args + " | tee " + self.simname + "-RT.o"
-	print (run)
-        print(subprocess.getoutput(run))
+        if not os.access (self.simname+".local", os.X_OK):
+            rep = Reporter ()
+            rep.appendReport ("Error: "+self.simname+".local file could not be executed\n")
+
+        cmd = [ "./" + self.simname + ".local" ]
+        cmd += self.args
+        with open(self.simname + "-RT.o", "wb") as f:
+            print ("Running test: " + cmd[0])
+            sys.stdout.flush ()
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = proc.communicate (timeout=900)
+            print (out.decode ('utf-8'))
+            print (err.decode ('utf-8'))
+            f.write (out)
+            f.write (err)
         self.jobnr = 0
 
 
@@ -110,6 +118,7 @@ class RegressionTest:
         curd = os.getcwd()
         os.chdir(self.dirname)
 
+        print (os.getcwd())
         isValid = self.validateReferenceFiles()
 
         self.queue = q
@@ -119,8 +128,14 @@ class RegressionTest:
             rep.appendReport("\t run simulation\n")
             os.environ["REG_TEST_DIR"] = self.dirname
 
-            # ADA cleanup all OLD job files if there are any
-            subprocess.getoutput("rm -rf " + self.simname + "-RT.* " + self.simname + "*.png")
+            # cleanup all OLD job files if there are any
+            for p in pathlib.Path(".").glob(self.simname + "-RT.*"):
+                p.unlink()
+
+            for p in pathlib.Path(".").glob(self.simname + "*.png"):
+                p.unlink()
+
+            # run test
             if not run_local:
                 self.submitToSGE()
                 self.waitUntilCompletion()
@@ -207,7 +222,7 @@ class StatTest:
         readLines = header['number of lines']
         numScalars = len(header['parameters'])
 
-        if header['columns'].has_key(self.var):
+        if self.var in header['columns']:
             varData = header['columns'][self.var]
             nrCol = varData['column']
 
@@ -417,7 +432,7 @@ class OutTest:
 
         parsed_units = self.parseUnits(unit_str)
 
-        if unit_conversion.has_key(parsed_units):
+        if parsed_units in unit_conversion:
             return unit_conversion[parsed_units]
 
         return 1
