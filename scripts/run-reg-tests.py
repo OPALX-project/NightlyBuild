@@ -235,9 +235,15 @@ def main(argv):
         srcdir = os.path.join ("results", d.isoformat(), "plots")
         dstdir = os.path.join (www_folder, "plots_" + d.isoformat())
         subprocess.getoutput("cp -rf " + srcdir + " " + dstdir)
-        index_fname = os.path.join (www_folder, "index.html")
-        if not os.path.exists(index_fname):
-            shutil.copy (os.path.join (rundir, "index.html"), index_fname)
+	index_fname = os.path.join (www_folder, "index.html")
+	if not os.path.exists(index_fname):
+	    shutil.copy (os.path.join (rundir, "index.html"), index_fname)
+	ok_sign_fname = os.path.join (www_folder, "ok.png")
+        if not os.path.exists(ok_sign_fname):
+            shutil.copy (os.path.join (rundir, "ok.png"), ok_sign_fname);
+        nok_sign_fname = os.path.join (www_folder, "nok.png")
+        if not os.path.exists(nok_sign_fname):
+            shutil.copy (os.path.join (rundir, "nok.png"), nok_sign_fname);
 
         indexhtml = open(index_fname).readlines()
         for line in range(len(indexhtml)):
