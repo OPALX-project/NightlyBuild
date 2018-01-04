@@ -102,8 +102,9 @@ if [[ ${arg_publish_results} != 'yes' ]]; then
 fi
 
 declare -a cmake_config=()
-cmake_config+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
-#cmake_config+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
+cmake_config+=( "-D CMAKE_BUILD_TYPE=RELEASE" )
+cmake_config+=( "-D ENABLE_SAAMG_SOLVER=TRUE" )
+cmake_config+=( "-D BUILD_OPAL_UNIT_TESTS=TRUE" )
 
 if [[ "${arg_enable_dks}" == 'yes' ]]; then
 	cmake_config+=( "-DENABLE_DKS=TRUE" )
