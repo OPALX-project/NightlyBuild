@@ -267,6 +267,7 @@ def main(argv):
         indexhtmlout.close()
         #update xslt formating file
         shutil.copy (rundir + "/results.xslt", www_folder + "/")
+        shutil.copy (rundir + "/accordion.js", www_folder + "/")
 
     #move xml results to result-dir
     if os.path.isfile('results.xml'):

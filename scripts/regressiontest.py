@@ -246,7 +246,7 @@ class StatTest:
         root.addAttribute("type", "stat")
         root.addAttribute("var", self.var)
         root.addAttribute("mode", self.quant)
-        passed_report = TempXMLElement("passed")
+        passed_report = TempXMLElement("state")
         eps_report = TempXMLElement("eps")
         delta_report = TempXMLElement("delta")
         plot_report = TempXMLElement("plot")
@@ -254,7 +254,7 @@ class StatTest:
         if not os.path.isfile(self.simname + ".stat"):
             rep.appendReport("ERROR: no statfile %s \n" % self.simname)
             rep.appendReport("\t Test %s(%s) broken \n" % (self.var,self.quant))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
             eps_report.appendTextNode("%s" % self.eps)
 
@@ -271,7 +271,7 @@ class StatTest:
         if readvar_sim == [] or readvar_ref == []:
             rep.appendReport("Error: unknown variable (%s) selected for stat test\n" % self.var)
             rep.appendReport("\t Test %s(%s) broken: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
             eps_report.appendTextNode("%s" % self.eps)
 
@@ -284,7 +284,7 @@ class StatTest:
             rep.appendReport("Error: size of stat variables (%s) dont agree!\n" % self.var)
             rep.appendReport("       size reference: %d, size simulation: %d\n" % (len(readvar_ref), len(readvar_sim)))
             rep.appendReport("\t Test %s(%s) broken: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
             eps_report.appendTextNode("%s" % self.eps)
 
@@ -315,11 +315,11 @@ class StatTest:
         passed = False
         if val < self.eps:
             rep.appendReport("Test %s(%s) passed: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("true")
+            passed_report.appendTextNode("passed")
             passed = True
         else:
             rep.appendReport("Test %s(%s) failed: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("failed")
 
         delta_report.appendTextNode("%s" % val)
         eps_report.appendTextNode("%s" % self.eps)
