@@ -80,7 +80,19 @@
         <h2>Regression Tests</h2>
         <xsl:for-each select="Tests/Simulation">
           <xsl:variable name="simname" select="@name"/>
-          <button class="accordion"> <b style="margin-right:40px"><xsl:value-of select="@name"/></b> [passed: <xsl:value-of select="count(Test[state='passed'])"/> | broken: <xsl:value-of select="count(Test[state='broken'])"/> | failed: <xsl:value-of select="count(Test[state='failed'])"/> ]</button>
+          <xsl:choose>
+            <xsl:when test="count(Test[passed]) &gt; 0">
+              <button class="accordion">
+                <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+                [passed: <xsl:value-of select="count(Test[passed='true'])"/> | broken or failed: <xsl:value-of select="count(Test[passed='false'])"/> ]
+              </button>
+            </xsl:when>
+            <xsl:otherwise>
+              <button class="accordion"> <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+              [passed: <xsl:value-of select="count(Test[state='passed'])"/> | broken: <xsl:value-of select="count(Test[state='broken'])"/> | failed: <xsl:value-of select="count(Test[state='failed'])"/> ]
+              </button>
+            </xsl:otherwise>
+          </xsl:choose>
           <div class="panel">
             <p>
               <!--<h3>Simulation: <xsl:value-of select="@name"/></h3>-->
