@@ -31,11 +31,11 @@
 
           /* Style the accordion panel. Note: hidden by default */
           .panel {
-          padding: 0 12px;
-          background-color: white;
-          max-height: 0;
-          overflow: hidden;
-          transition: max-height 0.2s ease-out;
+           padding: 0 12px;
+           background-color: white;
+           max-height: 0;
+           overflow: hidden;
+           transition: max-height 0.2s ease-out;
           }
           .accordion:after {
           content: '\02795'; /* Unicode character for "plus" sign (+) */
@@ -48,13 +48,20 @@
           .active:after {
           content: "\2796"; /* Unicode character for "minus" sign (-) */
           }
+
+          .fail {
+            background-color: #cdba2d;
+          }
+          .fail:hover {
+          background-color: #9d8d24;
+          }
         </style>
         <script type="text/javascript" src="accordion.js"></script>
       </head>
       <body onLoad="setup()">
         <h2><a name="test_revision" class="no-hover">Revisions</a></h2>
         <table border="0">
-          <tr bgcolor="#9acd32">
+          <tr bgcolor="#cdba2d">
             <th>Date</th>
             <th>Code</th>
             <th>Tests</th>
@@ -82,15 +89,34 @@
           <xsl:variable name="simname" select="@name"/>
           <xsl:choose>
             <xsl:when test="count(Test[passed]) &gt; 0">
-              <button class="accordion">
-                <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
-                [passed: <xsl:value-of select="count(Test[passed='true'])"/> | broken or failed: <xsl:value-of select="count(Test[passed='false'])"/> ]
-              </button>
+              <xsl:choose>
+                <xsl:when test="count(Test) != count(Test[passe='true'])">
+                  <button class="accordion fail">
+                    <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+                    [passed: <xsl:value-of select="count(Test[passed='true'])"/> | broken or failed: <xsl:value-of select="count(Test[passed='false'])"/> ]
+                  </button>
+                </xsl:when>
+                <xsl:otherwise>
+                  <button class="accordion">
+                    <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+                    [passed: <xsl:value-of select="count(Test[passed='true'])"/> | broken or failed: <xsl:value-of select="count(Test[passed='false'])"/> ]
+                  </button>
+                </xsl:otherwise>
+              </xsl:choose>
             </xsl:when>
             <xsl:otherwise>
-              <button class="accordion"> <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
-              [passed: <xsl:value-of select="count(Test[state='passed'])"/> | broken: <xsl:value-of select="count(Test[state='broken'])"/> | failed: <xsl:value-of select="count(Test[state='failed'])"/> ]
-              </button>
+              <xsl:choose>
+                <xsl:when test="count(Test) != count(Test[state='passed'])">
+                  <button class="accordion fail"> <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+                  [passed: <xsl:value-of select="count(Test[state='passed'])"/> | broken: <xsl:value-of select="count(Test[state='broken'])"/> | failed: <xsl:value-of select="count(Test[state='failed'])"/> ]
+                  </button>
+                </xsl:when>
+                <xsl:otherwise>
+                  <button class="accordion"> <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+                  [passed: <xsl:value-of select="count(Test[state='passed'])"/> | broken: <xsl:value-of select="count(Test[state='broken'])"/> | failed: <xsl:value-of select="count(Test[state='failed'])"/> ]
+                  </button>
+                </xsl:otherwise>
+              </xsl:choose>
             </xsl:otherwise>
           </xsl:choose>
           <div class="panel">
