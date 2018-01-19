@@ -61,7 +61,7 @@
       <body onLoad="setup()">
         <h2><a name="test_revision" class="no-hover">Revisions</a></h2>
         <table border="0">
-          <tr bgcolor="#cdba2d">
+          <tr bgcolor="#9acd32">
             <th>Date</th>
             <th>Code</th>
             <th>Tests</th>
