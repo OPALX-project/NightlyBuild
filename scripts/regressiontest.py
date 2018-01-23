@@ -86,9 +86,9 @@ class RegressionTest:
                 print (err.decode ('utf-8'))
                 f.write (out)
                 f.write (err)
-             except subprocess.TimeoutExpired:
+            except subprocess.TimeoutExpired:
                 print ("%s timed out!!!" % (cmd))
-             except subprocess.CalledProcessError as e:
+            except subprocess.CalledProcessError as e:
                 print ("%s exited with code %d" % (cmd, e.returncode))
         self.jobnr = 0
 
