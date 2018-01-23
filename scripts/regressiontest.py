@@ -62,11 +62,12 @@ class RegressionTest:
                 exc_info = sys.exc_info()
                 sys.excepthook(*exc_info)
                 rep.appendReport(
-                    "Error: failed to parse "+self.simname+".rt file line "+\
-                    str(i+2)+"\n    "+str(test)+"\nPython reports\n  "+\
-                    str(exc_info[1])+"\n\n"
+                    ("Test broken: didn't succeed to parse %s.rt file line %d\n"
+                     "%s\n"
+                     "Python reports\n"
+                     "%s\n\n") % (self.simname, i+2, test, exc_info[1])
                 )
-                sys.exc_clear()
+                #sys.exc_clear() in python 3 not supported any more
 
     def mpirun(self):
         if not os.access (self.simname+".local", os.X_OK):
@@ -251,7 +252,7 @@ class StatTest:
         root.addAttribute("type", "stat")
         root.addAttribute("var", self.var)
         root.addAttribute("mode", self.quant)
-        passed_report = TempXMLElement("passed")
+        passed_report = TempXMLElement("state")
         eps_report = TempXMLElement("eps")
         delta_report = TempXMLElement("delta")
         plot_report = TempXMLElement("plot")
@@ -259,7 +260,7 @@ class StatTest:
         if not os.path.isfile(self.simname + ".stat"):
             rep.appendReport("ERROR: no statfile %s \n" % self.simname)
             rep.appendReport("\t Test %s(%s) broken \n" % (self.var,self.quant))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
             eps_report.appendTextNode("%s" % self.eps)
 
@@ -276,7 +277,7 @@ class StatTest:
         if readvar_sim == [] or readvar_ref == []:
             rep.appendReport("Error: unknown variable (%s) selected for stat test\n" % self.var)
             rep.appendReport("\t Test %s(%s) broken: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
             eps_report.appendTextNode("%s" % self.eps)
 
@@ -289,7 +290,7 @@ class StatTest:
             rep.appendReport("Error: size of stat variables (%s) dont agree!\n" % self.var)
             rep.appendReport("       size reference: %d, size simulation: %d\n" % (len(readvar_ref), len(readvar_sim)))
             rep.appendReport("\t Test %s(%s) broken: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
             eps_report.appendTextNode("%s" % self.eps)
 
@@ -320,11 +321,11 @@ class StatTest:
         passed = False
         if val < self.eps:
             rep.appendReport("Test %s(%s) passed: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("true")
+            passed_report.appendTextNode("passed")
             passed = True
         else:
             rep.appendReport("Test %s(%s) failed: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("failed")
 
         delta_report.appendTextNode("%s" % val)
         eps_report.appendTextNode("%s" % self.eps)
@@ -454,14 +455,14 @@ class OutTest:
         root.addAttribute("type", "out")
         root.addAttribute("var", self.var)
         root.addAttribute("mode", self.quant)
-        passed_report = TempXMLElement("passed")
+        passed_report = TempXMLElement("state")
         eps_report = TempXMLElement("eps")
         delta_report = TempXMLElement("delta")
 
         if not os.path.isfile(self.simname + ".out"):
             rep.appendReport("ERROR: no outfile %s \n" % self.simname)
             rep.appendReport("\t Test %s(%s) broken\n" % (self.var,self.quant))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
             eps_report.appendTextNode("%s" % self.eps)
 
@@ -477,7 +478,7 @@ class OutTest:
         if len(readvar_sim) == 0 or len(readvar_ref) == 0:
             rep.appendReport("Error: unknown variable (%s) selected for out test\n" % self.var)
             rep.appendReport("\t Test %s(%s) broken: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
             eps_report.appendTextNode("%s" % self.eps)
 
@@ -489,7 +490,7 @@ class OutTest:
         if len(readvar_sim) != len(readvar_ref):
             rep.appendReport("Error: size of out variables (%s) dont agree!\n" % self.var)
             rep.appendReport("\t Test %s(%s) broken: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
             eps_report.appendTextNode("%s" % self.eps)
 
@@ -532,10 +533,10 @@ class OutTest:
         #result generation
         if passed:
             rep.appendReport("Test %s(%s) passed: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("true")
+            passed_report.appendTextNode("passed")
         else:
             rep.appendReport("Test %s(%s) failed: %s (eps=%s) \n" % (self.var,self.quant,val,self.eps))
-            passed_report.appendTextNode("false")
+            passed_report.appendTextNode("failed")
 
         if len(val) == 1:
             delta_report.appendTextNode("%s" % val[0])
@@ -653,12 +654,12 @@ class LossTest:
         root.addAttribute("type", "loss")
         root.addAttribute("var", self.variable)
         root.addAttribute("mode", self.mode)
-        passed_report = TempXMLElement("passed")
+        passed_report = TempXMLElement("state")
         eps_report = TempXMLElement("eps")
         delta_report = TempXMLElement("delta")
         plot_report = TempXMLElement("plot")
 
-        passed_report.appendTextNode(str(has_passed).lower())
+        passed_report.appendTextNode("passed" if has_passed else "failed")
         delta_report.appendTextNode(str(delta))
         eps_report.appendTextNode(str(self.tolerance))
 

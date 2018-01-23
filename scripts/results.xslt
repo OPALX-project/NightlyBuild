@@ -1,16 +1,64 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <xsl:stylesheet version="1.0"
-    xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 
-    <xsl:template match="/">
+  <xsl:template match="/">
     <html>
-    <style type="text/css">
-    a { text-decoration:none; color:#666; }
-    a:hover { text-decoration:underline; color:#f00;}
-    .no-hover {text-decoration:none; color:#000;}
-    .no-hover:hover {text-decoration:none; color:#000;}
-    </style>
-    <body>
+      <head>
+        <style type="text/css">
+          a { text-decoration:none; color:#666; }
+          a:hover { text-decoration:underline; color:#f00;}
+          .no-hover {text-decoration:none; color:#000;}
+          .no-hover:hover {text-decoration:none; color:#000;}
+          /* Style the buttons that are used to open and close the accordion panel */
+          .accordion {
+            background-color: #eee;
+            font-size: 12pt;
+            color: #444;
+            cursor: pointer;
+            padding: 12px;
+            width: 100%;
+            text-align: left;
+            border: none;
+            outline: none;
+            transition: 0.4s;
+          }
+
+          /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+          .active, .accordion:hover {
+          background-color: #ccc;
+          }
+
+          /* Style the accordion panel. Note: hidden by default */
+          .panel {
+           padding: 0 12px;
+           background-color: white;
+           max-height: 0;
+           overflow: hidden;
+           transition: max-height 0.2s ease-out;
+          }
+          .accordion:after {
+          content: '\02795'; /* Unicode character for "plus" sign (+) */
+          font-size: 13px;
+          color: #777;
+          float: right;
+          margin-left: 5px;
+          }
+
+          .active:after {
+          content: "\2796"; /* Unicode character for "minus" sign (-) */
+          }
+
+          .fail {
+            background-color: #cdba2d;
+          }
+          .fail:hover {
+          background-color: #9d8d24;
+          }
+        </style>
+        <script type="text/javascript" src="accordion.js"></script>
+      </head>
+      <body onLoad="setup()">
         <h2><a name="test_revision" class="no-hover">Revisions</a></h2>
         <table border="0">
           <tr bgcolor="#9acd32">
@@ -38,85 +86,89 @@
         </table>
         <h2>Regression Tests</h2>
         <xsl:for-each select="Tests/Simulation">
-            <xsl:variable name="simname" select="@name"/>
-            <h3>Simulation: <xsl:value-of select="@name"/></h3>
-            Description: <xsl:value-of select="@description"/>
-            <table border="0">
-            <tr bgcolor="#9acd32">
-                <th>Variable</th>
-                <th>Mode</th>
-                <th>Required Accuracy</th>
-                <th>Delta</th>
-                <th>Status</th>
-                <th>Plot</th>
-            </tr>
-            <xsl:for-each select="Test">
-                <xsl:choose>
-                    <xsl:when test="contains(passed,'true')">
-                    <tr>
+          <xsl:variable name="simname" select="@name"/>
+          <xsl:choose>
+            <xsl:when test="count(Test[passed]) &gt; 0">
+              <xsl:choose>
+                <xsl:when test="count(Test) != count(Test[passe='true'])">
+                  <button class="accordion fail">
+                    <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+                    [passed: <xsl:value-of select="count(Test[passed='true'])"/> | broken or failed: <xsl:value-of select="count(Test[passed='false'])"/> ]
+                  </button>
+                </xsl:when>
+                <xsl:otherwise>
+                  <button class="accordion">
+                    <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+                    [passed: <xsl:value-of select="count(Test[passed='true'])"/> | broken or failed: <xsl:value-of select="count(Test[passed='false'])"/> ]
+                  </button>
+                </xsl:otherwise>
+              </xsl:choose>
+            </xsl:when>
+            <xsl:otherwise>
+              <xsl:choose>
+                <xsl:when test="count(Test) != count(Test[state='passed'])">
+                  <button class="accordion fail"> <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+                  [passed: <xsl:value-of select="count(Test[state='passed'])"/> | broken: <xsl:value-of select="count(Test[state='broken'])"/> | failed: <xsl:value-of select="count(Test[state='failed'])"/> ]
+                  </button>
+                </xsl:when>
+                <xsl:otherwise>
+                  <button class="accordion"> <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
+                  [passed: <xsl:value-of select="count(Test[state='passed'])"/> | broken: <xsl:value-of select="count(Test[state='broken'])"/> | failed: <xsl:value-of select="count(Test[state='failed'])"/> ]
+                  </button>
+                </xsl:otherwise>
+              </xsl:choose>
+            </xsl:otherwise>
+          </xsl:choose>
+          <div class="panel">
+            <p>
+              <!--<h3>Simulation: <xsl:value-of select="@name"/></h3>-->
+              Description: <xsl:value-of select="@description"/>
+              <table border="0">
+                <tr bgcolor="#9acd32">
+                  <th>Variable</th>
+                  <th>Mode</th>
+                  <th>Required Accuracy</th>
+                  <th>Delta</th>
+                  <th>Status</th>
+                </tr>
+                <xsl:for-each select="Test">
+                  <xsl:choose>
+                    <xsl:when test="contains(state,'passed')">
+                      <tr>
                         <td><xsl:value-of select="@var"/></td>
                         <td><xsl:value-of select="@mode"/></td>
                         <td><xsl:value-of select="eps"/></td>
                         <td><xsl:value-of select="delta"/></td>
                         <td align="center"><img src="ok.png"/></td>
-                        <td>
-                            <xsl:variable name="plotname" select="plot"/>
-                            <xsl:if test="$plotname">
-                                <xsl:variable name="varname" select="@var"/>
-                                <a href="#{$simname}_{$varname}">show...</a>
-                            </xsl:if>
-                        </td>
-                    </tr>
+                      </tr>
                     </xsl:when>
                     <xsl:otherwise>
-                    <tr bgcolor="#cdba2d">
+                      <tr bgcolor="#cdba2d">
                         <td><xsl:value-of select="@var"/></td>
                         <td><xsl:value-of select="@mode"/></td>
                         <td><xsl:value-of select="eps"/></td>
                         <td><xsl:value-of select="delta"/></td>
                         <td align="center"><img src="nok.png"/></td>
-                        <td>
-                            <xsl:variable name="plotname" select="plot"/>
-                            <xsl:if test="$plotname">
-                                <xsl:variable name="varname" select="@var"/>
-                                <a href="#{$simname}_{$varname}">show...</a>
-                            </xsl:if>
-                        </td>
-                    </tr>
+                      </tr>
                     </xsl:otherwise>
-                </xsl:choose>
-            </xsl:for-each>
-        </table><br/>
-        </xsl:for-each>
-
-        <br/>
-        <hr/>
-        <h2>Plots</h2>
-        <xsl:for-each select="Tests/Simulation">
-                <xsl:variable name="simname" select="@name"/>
-            <h3>Simulation: <xsl:value-of select="@name"/></h3>
-            <xsl:for-each select="Test">
+                  </xsl:choose>
+                </xsl:for-each>
+              </table><br/>
+              <xsl:for-each select="Test">
                 <xsl:variable name="plotname" select="plot"/>
                 <xsl:if test="$plotname">
-                    <!--<xsl:value-of select="@var"/>:<br/>-->
-                    <xsl:variable name="varname" select="@var"/>
-                    <a name="{$simname}_{$varname}">
-                        <img style="margin-right:3px; margin-bottom:3px;" src="{plot}" alt="" title="" />
-                    </a>
-<!--                    <div style="width:100%; text-align:right">-->
-                        <a href="#test_revision">
-                            top &#8593;
-                        </a>
-<!--                    </div>-->
-                    <br/><br/>
+                  <xsl:variable name="varname" select="@var"/>
+                  <img style="margin-right:3px; margin-bottom:3px;" src="{plot}" alt="" title="" />
+                  <br/><br/>
                 </xsl:if>
 
-            </xsl:for-each>
-        <br/>
+              </xsl:for-each>
+              <br/>
+            </p>
+          </div>
         </xsl:for-each>
-
-    </body>
+      </body>
     </html>
-    </xsl:template>
+  </xsl:template>
 
 </xsl:stylesheet>
