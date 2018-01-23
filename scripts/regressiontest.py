@@ -76,14 +76,19 @@ class RegressionTest:
         cmd = [ "./" + self.simname + ".local" ]
         cmd += self.args
         with open(self.simname + "-RT.o", "wb") as f:
-            print ("Running test: " + cmd[0])
-            sys.stdout.flush ()
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            out, err = proc.communicate (timeout=900)
-            print (out.decode ('utf-8'))
-            print (err.decode ('utf-8'))
-            f.write (out)
-            f.write (err)
+            try:
+                print ("Running test: " + cmd[0])
+                sys.stdout.flush ()
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                out, err = proc.communicate (timeout=900)
+                print (out.decode ('utf-8'))
+                print (err.decode ('utf-8'))
+                f.write (out)
+                f.write (err)
+             except subprocess.TimeoutExpired:
+                print ("%s timed out!!!" % (cmd))
+             except subprocess.CalledProcessError as e:
+                print ("%s exited with code %d" % (cmd, e.returncode))
         self.jobnr = 0
 
 
