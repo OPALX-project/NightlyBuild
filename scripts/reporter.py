@@ -57,7 +57,8 @@ class Reporter:
                 f.close()
 
             xmllines = open("results.xml", "r").readlines()
-            xmllines.insert(1, "<?xml-stylesheet type=\"text/xsl\" href=\"results.xslt\"?>\n") #add stylesheet information
+            #add stylesheet information
+            xmllines.insert(1, "<?xml-stylesheet type=\"text/xsl\" href=\"results.xslt\"?>\n")
             xmloutfile = open("results.xml", "w")
             xmloutfile.writelines(xmllines) #dump to file again
             xmloutfile.close()
