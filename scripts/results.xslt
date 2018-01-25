@@ -90,7 +90,7 @@
           <xsl:choose>
             <xsl:when test="count(Test[passed]) &gt; 0">
               <xsl:choose>
-                <xsl:when test="count(Test) != count(Test[passe='true'])">
+                <xsl:when test="count(Test) != count(Test[passed='true'])">
                   <button class="accordion fail">
                     <b style="margin-right:40px"><xsl:value-of select="@name"/></b>
                     [passed: <xsl:value-of select="count(Test[passed='true'])"/> | broken or failed: <xsl:value-of select="count(Test[passed='false'])"/> ]
@@ -133,7 +133,7 @@
                 </tr>
                 <xsl:for-each select="Test">
                   <xsl:choose>
-                    <xsl:when test="contains(state,'passed')">
+                    <xsl:when test="contains(state,'passed') or contains(passed,'true')">
                       <tr>
                         <td><xsl:value-of select="@var"/></td>
                         <td><xsl:value-of select="@mode"/></td>
