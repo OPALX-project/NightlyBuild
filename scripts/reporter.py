@@ -44,24 +44,20 @@ class Reporter:
         return self.xml_report
 
     def dumpXML(self, filename):
-        #ADD: stylesheet line to xmlfile (FIXME: maybe theres a better way to do this)
         xmlRep = getattr(self, 'xml_report', None)
-        if xmlRep is not None:
-            xml = self.xml_report.toprettyxml(indent='  ')
-            text_re = re.compile('>\n\s+([^<>\s].*?)\n\s+</', re.DOTALL)
-            prettyxml = text_re.sub('>\g<1></', xml)
-            f = open(filename, "w")
-            try:
-                f.write(prettyxml)
-            finally:
-                f.close()
-
-            xmllines = open("results.xml", "r").readlines()
-            #add stylesheet information
-            xmllines.insert(1, "<?xml-stylesheet type=\"text/xsl\" href=\"results.xslt\"?>\n")
-            xmloutfile = open("results.xml", "w")
-            xmloutfile.writelines(xmllines) #dump to file again
-            xmloutfile.close()
+        if not xmlRep:
+            return
+        pi = xmlRep.createProcessingInstruction(
+            'xml-stylesheet',
+            'type="text/xsl" href="results.xslt"')
+        root = xmlRep.firstChild
+        xmlRep.insertBefore (pi, root)
+            
+        f = open (filename, "w")
+        try:
+            f.write (self.xml_report.toprettyxml (indent='  '))
+        finally:
+            f.close ()
 
 
 class TempXMLElement:
