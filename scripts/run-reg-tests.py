@@ -26,10 +26,10 @@ opal_args = ""
 
 """
 Scan given directory for regression tests. Regression tests are stored
-in sub-directory of the given directory. The name of the regression test
-specifies the name of the  is th
+in sub-directories whereby the name the directory has the same name as
+the regression test.
 
-tests for the following directory-layouts:
+Regression tests must follow the following directory-layouts:
 
     DIR Structure:
     name/name.in
@@ -67,23 +67,7 @@ def scan_for_tests (dir):
 
                 
 """
-This method traverses the directory tree. It will check and execute regression
-tests for the following directory-layouts:
-
-    DIR Structure:
-    name/name.in
-         name.rt
-         run
-         run-parallel
-         *.T7
-         reference/name.lbal
-         reference/name.out
-         reference/name.stat
-         reference/name.lbal.md5
-         reference/name.out.md5
-         reference/name.stat.md5
-
-Please make sure you use this naming scheme!
+Run a single regression test
 """
 
 def run_regression_test (simname, run_local = True, queue_name = ''):
@@ -110,7 +94,6 @@ def run_regression_test (simname, run_local = True, queue_name = ''):
     
 def bailout():
     rep = Reporter()
-    d = datetime.date.today()
     rep.appendReport("==========================================================\n")
     rep.appendReport("Finished Regression Test on %s \n" % datetime.datetime.today())
 
@@ -285,7 +268,6 @@ def main(argv):
     rep.appendReport("\n")
     rep.appendReport("Start Regression Test on %s \n" % datetime.datetime.today())
     rep.appendReport("==========================================================\n")
-
     addDate(rep)
 
     os.chdir(regdir)
@@ -293,10 +275,8 @@ def main(argv):
     for test in sorted(regression_tests):
         # run test if runtest is empty or test is in runtests
         if not runtests or test in runtests:
-            print ("Running test '%s' ..." % (test))
             run_regression_test (test)
         else:
-            print ("Skipping test '%s' ..." % (test))
             rep.appendReport("User decided to skip regression test %s \n" % test)
             rep.appendReport("\n\n")
             
