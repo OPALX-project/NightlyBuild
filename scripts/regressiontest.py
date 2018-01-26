@@ -8,6 +8,7 @@ import sys
 import shutil
 import pathlib
 import threading
+import hashlib
 
 from reporter import Reporter
 from reporter import TempXMLElement
@@ -15,6 +16,22 @@ from reporter import TempXMLElement
 from tools import genplot
 from tools import readfile
 from tools import readStatHeader
+
+
+"""
+Check MD5 sum. File content must be compatible with md5sum(1) output.
+
+Note: Use this function for small files only!
+"""
+def check_md5sum (fname_md5sum):
+    with open (fname_md5sum, 'r') as f:
+        first_line = f.readline ()
+        f.close()
+
+    md5sum, fname = first_line.split()
+    ok = md5sum == hashlib.md5(open(fname, 'rb').read()).hexdigest()
+    return ok
+
 
 class RegressionTest:
 
@@ -123,13 +140,9 @@ class RegressionTest:
 
         curd = os.getcwd()
         os.chdir(self.dirname)
-
-        print (os.getcwd())
-        isValid = self.validateReferenceFiles()
-
         self.queue = q
 
-        if isValid:
+        if self.validateReferenceFiles():
             rep = Reporter()
             rep.appendReport("\t run simulation\n")
             os.environ["REG_TEST_DIR"] = self.dirname
@@ -149,21 +162,26 @@ class RegressionTest:
                 self.waitUntilCompletion()
 
             # copy o to out file
-            subprocess.getoutput("cp -rf " + self.simname + "-RT.o* " + self.simname + ".out")
+            if os.path.isfile (self.simname + "-RT.o"):
+                shutil.copy (self.simname + "-RT.o", self.simname + ".out")
 
             self.performTests(root)
 
             # move plots to plot dir
             d = datetime.date.today()
-            plotdir = "results/" + d.isoformat() + "/plots"
-
-            subprocess.getoutput("mkdir " + curd + "/" + plotdir)
-            subprocess.getoutput("cp -rf *.png " + curd + "/" + plotdir)
+            plotdir = os.path.join (curd, "results", d.isoformat(), "plots")
+            pathlib.Path(curd).mkdir(parents=True, exist_ok=True)
+            for p in pathlib.Path(".").glob("*.png"):
+                shutil.copy (p, plotdir)
 
             #move tests to result folder
-            subprocess.getoutput("cp -rf " + self.simname + ".stat " + curd + "/" + self.resultdir)
-            subprocess.getoutput("cp -rf " + self.simname + ".lbal " + curd + "/" + self.resultdir)
-            subprocess.getoutput("cp -rf " + self.simname + ".out " + curd + "/" + self.resultdir)
+            dstdir = os.path.join (curd, self.resultdir)
+            if os.path.isfile (self.simname + ".stat"):
+                shutil.copy (self.simname + ".stat", dstdir)
+            if os.path.isfile (self.simname + ".lbal"):
+                shutil.copy (self.simname + ".lbal", dstdir)
+            if os.path.isfile (self.simname + ".out"):
+                shutil.copy (self.simname + ".out",  dstdir)
         os.chdir(curd)
 
     """
@@ -184,14 +202,19 @@ class RegressionTest:
            os.path.isfile(self.simname + ".lbal") and \
            os.path.isfile(self.simname + ".lbal.md5"):
 
-            statout = subprocess.getoutput("md5sum --check " + self.simname + ".stat.md5")
-            outout = subprocess.getoutput("md5sum --check " + self.simname + ".out.md5")
-            lbalout = subprocess.getoutput("md5sum --check " + self.simname + ".lbal.md5")
+            fname = self.simname + '.stat'
+            stat_ok = check_md5sum (fname + '.md5')
+            rep.appendReport("\t Checksum for reference %s %s \n" % (fname, ('OK' if stat_ok else 'FAILED')))
 
-            rep.appendReport("\t Checksum for reference %s \n" % statout)
-            rep.appendReport("\t Checksum for reference %s \n" % outout)
-            rep.appendReport("\t Checksum for reference %s \n" % lbalout)
-            allok = statout == self.simname + ".stat: OK" and outout == self.simname + ".out: OK" and lbalout == self.simname + ".lbal: OK"
+            fname = self.simname + '.out'
+            out_ok =  check_md5sum (fname + '.md5')
+            rep.appendReport("\t Checksum for reference %s %s \n" % (fname, ('OK' if out_ok else 'FAILED')))
+
+            fname = self.simname + '.lbal'
+            lbal_ok = check_md5sum (fname + '.md5')
+            rep.appendReport("\t Checksum for reference %s %s \n" % (fname, ('OK' if lbal_ok else 'FAILED')))
+
+            allok = stat_ok and out_ok and lbal_ok
 
         else:
             rep_string = "\t Error: reference dir for "+self.simname+" is incomplete!\n"
@@ -201,10 +224,11 @@ class RegressionTest:
                 file_name = self.simname+file_suffix
                 rep_string += "\t\t "+file_name+" "+str(os.path.isfile(file_name))+"\n"
             rep.appendReport(rep_string)
+            
         for loss_file in glob.glob("*.loss"):
-            lossout = subprocess.getoutput("md5sum --check " + loss_file+".md5")
-            rep.appendReport("\t Checksum for reference %s \n" % lossout)
-            allok = allok and lossout == loss_file+": OK"
+            loss_ok = check_md5sum (loss_file + '.md5')
+            allok = allok and loss_ok
+            rep.appendReport("\t Checksum for reference %s %s\n" % (loss_file, ('OK' if loss_ok else 'FAILED')))
         os.chdir(olddir)
         return allok
 
