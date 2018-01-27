@@ -695,11 +695,11 @@ class LossTest:
         self.report(root, *test_result)
         return (True if test_result[1] == 'passed' else False)
 
-    def report(self, root, has_passed, delta):
+    def report(self, root, state, delta):
         """
         Add an entry to the XML document corresponding to the test result
             - root node in an XML document tree? Not sure
-            - has_passed bool indicating whether the test passed or failed
+            - state indicating whether the test passed, failed or is broken
             - delta ?
         """
         root.addAttribute("type", "loss")
@@ -710,7 +710,7 @@ class LossTest:
         delta_report = TempXMLElement("delta")
         plot_report = TempXMLElement("plot")
 
-        passed_report.appendTextNode("passed" if has_passed else "failed")
+        passed_report.appendTextNode(state)
         delta_report.appendTextNode(str(delta))
         eps_report.appendTextNode(str(self.tolerance))
 
@@ -738,9 +738,11 @@ class LossTest:
                 ref_data = self.readOneLine(ref.readline())[2]
             # if any file ends, both files must end (or we fail)
             if test_data == 'end_of_file' or ref_data == 'end_of_file':
-                return (test_pass and \
-                        test_data == 'end_of_file' and\
-                        ref_data == 'end_of_file', str(sum_squares**0.5/n))
+                state = ('success' if (test_pass and \
+                                       test_data == 'end_of_file' and\
+                                       ref_data == 'end_of_file') else 'failed')
+
+                return (state, str(sum_squares**0.5/n))
             else:
                 test_value = abs(test_data - ref_data)
                 sum_squares += test_value**2
