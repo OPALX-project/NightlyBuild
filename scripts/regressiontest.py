@@ -224,7 +224,7 @@ class RegressionTest:
                 file_name = self.simname+file_suffix
                 rep_string += "\t\t "+file_name+" "+str(os.path.isfile(file_name))+"\n"
             rep.appendReport(rep_string)
-            
+
         for loss_file in glob.glob("*.loss"):
             loss_ok = check_md5sum (loss_file + '.md5')
             allok = allok and loss_ok
@@ -664,9 +664,36 @@ class LossTest:
         """
         Run the test and add output to the report
         """
+        if (not os.path.isfile(self.file_name) or
+            not os.path.isfile("reference/" + self.file_name)):
+
+            if not os.path.isfile(self.file_name):
+                self.rep.appendReport("ERROR: no loss file %s \n" % self.file_name)
+            if not os.path.isfile("reference/" + self.file_name):
+                self.rep.appendReport("ERROR: no reference file %s \n" % ("reference" + self.file_name))
+
+            self.rep.appendReport("\t Test %s(%s) broken \n" % (self.variable,self.mode))
+            passed_report = TempXMLElement("state")
+            eps_report = TempXMLElement("eps")
+            delta_report = TempXMLElement("delta")
+            plot_report = TempXMLElement("plot")
+
+            passed_report.appendTextNode("broken")
+            delta_report.appendTextNode("-")
+            eps_report.appendTextNode("%s" % self.tolerance)
+
+            root.addAttribute("type", "loss")
+            root.addAttribute("var", self.variable)
+            root.addAttribute("mode", self.mode)
+            root.appendChild(passed_report)
+            root.appendChild(eps_report)
+            root.appendChild(delta_report)
+            return False
+
         test_result = self.test(self) # note test() is a function pointer set at
                                       # initialisation
         self.report(root, *test_result)
+        return (True if test_result[1] == 'passed' else False)
 
     def report(self, root, has_passed, delta):
         """
