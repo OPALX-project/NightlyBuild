@@ -154,10 +154,15 @@ class RegressionTest:
             for p in pathlib.Path(".").glob(self.simname + "*.png"):
                 p.unlink()
 
+            for p in pathlib.Path(".").glob("*.loss"):
+                p.unlink()
+
             if os.path.isfile(self.simname + ".stat"):
                 os.remove (self.simname + ".stat")
+
             if os.path.isfile (self.simname + ".lbal"):
                 os.remove (self.simname + ".lbal")
+
             if os.path.isfile (self.simname + ".out"):
                 os.remove (self.simname + ".out")
 
