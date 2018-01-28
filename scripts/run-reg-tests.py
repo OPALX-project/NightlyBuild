@@ -65,7 +65,7 @@ def scan_for_tests (dir):
             rep.appendReport("Found test %s \n" % (test))
     return tests
 
-                
+
 """
 Run a single regression test
 """
@@ -91,7 +91,7 @@ def run_regression_test (simname, run_local = True, queue_name = ''):
     totalNrPassed += rt.totalNrPassed
     rep.appendReport("\n\n")
 
-    
+
 def bailout():
     rep = Reporter()
     rep.appendReport("==========================================================\n")
@@ -154,7 +154,7 @@ def publish_results (rundir, publish_dir):
 
     # update 'index.html'
     indexhtml = open(index_fname).readlines()
-        
+
     # search for the string 'insert here'
     for line in range(len(indexhtml)):
         if "insert here" in indexhtml[line]:
@@ -163,7 +163,7 @@ def publish_results (rundir, publish_dir):
             text = fmt % (webfilename,
                           d.day, d.month, d.year,
                           totalNrPassed, rep.NrBroken(), rep.NrFailed(), totalNrTests)
-            
+
             if m != None:
                 # result for today already exist, replace it
                 indexhtml[line+1] = text
@@ -175,14 +175,14 @@ def publish_results (rundir, publish_dir):
     indexhtmlout = open(index_fname, "w")
     indexhtmlout.writelines(indexhtml)
     indexhtmlout.close()
-        
+
     # update various files to publish directory
     shutil.copy (os.path.join (rundir, "ok.png"), publish_dir);
     shutil.copy (os.path.join (rundir, "nok.png"), publish_dir);
     shutil.copy (os.path.join (rundir, "results.xslt"), publish_dir)
     shutil.copy (os.path.join (rundir, "accordion.js"), publish_dir)
 
-    
+
 def main(argv):
     rep = Reporter()
     rundir = sys.path[0]   # get absolute path name of this script
@@ -252,10 +252,20 @@ def main(argv):
 
     # done with the arguments
 
+    # clean old results
+    d = datetime.date.today()
+    srcdir = os.path.join (regdir, "results", d.isoformat(), "plots")
+    dstdir = os.path.join (www_folder, "plots_" + d.isoformat())
+
+    if os.path.isdir(srcdir):
+        shutil.rmtree(srcdir)
+    if os.path.isdir(dstdir):
+        shutil.rmtree(dstdir)
+
     ####
     # scan for valid tests in specified directory and
     # check whether the requested tests are valid tests
-    
+
     regression_tests = scan_for_tests (regdir)
     for test in runtests:
         if not test in regression_tests:
@@ -279,7 +289,7 @@ def main(argv):
         else:
             rep.appendReport("User decided to skip regression test %s \n" % test)
             rep.appendReport("\n\n")
-            
+
     addRevisionStrings(rep)
     rep.dumpXML("results.xml")
 
