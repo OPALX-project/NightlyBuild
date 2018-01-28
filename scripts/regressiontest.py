@@ -154,6 +154,13 @@ class RegressionTest:
             for p in pathlib.Path(".").glob(self.simname + "*.png"):
                 p.unlink()
 
+            if os.path.isfile(self.simname + ".stat"):
+                os.remove (self.simname + ".stat")
+            if os.path.isfile (self.simname + ".lbal"):
+                os.remove (self.simname + ".lbal")
+            if os.path.isfile (self.simname + ".out"):
+                os.remove (self.simname + ".out")
+
             # run test
             if run_local:
                 self.mpirun()
@@ -170,7 +177,7 @@ class RegressionTest:
             # move plots to plot dir
             d = datetime.date.today()
             plotdir = os.path.join (curd, "results", d.isoformat(), "plots")
-            pathlib.Path(curd).mkdir(parents=True, exist_ok=True)
+            pathlib.Path(plotdir).mkdir(parents=True, exist_ok=True)
             for p in pathlib.Path(".").glob("*.png"):
                 shutil.copy (p, plotdir)
 
