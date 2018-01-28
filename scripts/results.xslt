@@ -85,6 +85,22 @@
           </tr>
         </table>
         <h2>Regression Tests</h2>
+        <xsl:if test="count(Tests/Simulation/Test[state]) &gt; 0">
+          <table border="0" style="margin-bottom: 25px">
+            <tr bgcolor="#9acd32">
+              <th style="padding: 2px 16px 2px 16px;">Passed</th>
+              <th style="padding: 2px 16px 2px 16px;">Broken</th>
+              <th style="padding: 2px 16px 2px 16px;">Failed</th>
+              <th style="padding: 2px 16px 2px 16px;">Total</th>
+            </tr>
+            <tr>
+              <td style="text-align: center"><xsl:value-of select="count(Tests/Simulation/Test[state='passed'])"/></td>
+              <td style="text-align: center"><xsl:value-of select="count(Tests/Simulation/Test[state='broken'])"/></td>
+              <td style="text-align: center"><xsl:value-of select="count(Tests/Simulation/Test[state='failed'])"/></td>
+              <td style="text-align: center"><xsl:value-of select="count(Tests/Simulation/Test)"/></td>
+            </tr>
+          </table>
+        </xsl:if>
         <xsl:for-each select="Tests/Simulation">
           <xsl:variable name="simname" select="@name"/>
           <xsl:choose>
