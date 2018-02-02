@@ -60,12 +60,17 @@ class RegressionTest:
             time.sleep(30)
             qstatout = subprocess.getoutput("qstat -u " + username + " | grep \"" + self.jobnr + "\"")
 
-    def performTests(self, root):
+    def performTests(self, root, exit_code):
         rep = Reporter()
         tests = readfile(self.simname + ".rt")
-        root.addAttribute("description", tests[0].lstrip("\"").rstrip("\""))
-        rep.appendChild(root)
+        description = tests[0].lstrip("\"").rstrip("\"")
+        if exit_code == 256:
+            description += ". Test timed out!"
+        elif exit_code != 0:
+            description += ". Test failed with exit code %d" % (exit_code)
+        root.addAttribute("description", description)
 
+        rep.appendChild(root)
         tests = tests[1::] #strip first line
         for i, test in enumerate(tests):
             try:
@@ -93,11 +98,12 @@ class RegressionTest:
 
         cmd = [ "./" + self.simname + ".local" ]
         cmd += self.args
+        exit_code = 0
         with open(self.simname + "-RT.o", "wb") as f:
             try:
                 print ("Running test: " + cmd[0])
                 sys.stdout.flush ()
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                 out, err = proc.communicate (timeout=600)
                 print (out.decode ('utf-8'))
                 print (err.decode ('utf-8'))
@@ -105,10 +111,12 @@ class RegressionTest:
                 f.write (err)
             except subprocess.TimeoutExpired:
                 print ("%s timed out!!!" % (cmd))
+                exit_code = 256
             except subprocess.CalledProcessError as e:
                 print ("%s exited with code %d" % (cmd, e.returncode))
+                exit_code = e.returncode
         self.jobnr = 0
-
+        return exit_code
 
     """
     handler for comparison of various output files with reference files
@@ -168,7 +176,7 @@ class RegressionTest:
 
             # run test
             if run_local:
-                self.mpirun()
+                exit_code = self.mpirun()
             else:
                 self.submitToSGE()
                 self.waitUntilCompletion()
@@ -177,7 +185,7 @@ class RegressionTest:
             if os.path.isfile (self.simname + "-RT.o"):
                 shutil.copy (self.simname + "-RT.o", self.simname + ".out")
 
-            self.performTests(root)
+            self.performTests(root, exit_code)
 
             # move plots to plot dir
             d = datetime.date.today()
