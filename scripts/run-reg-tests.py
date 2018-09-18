@@ -223,7 +223,7 @@ def main(argv):
         bailout()
         return
 
-    # get directorx where to store results
+    # get directory where to store results
     if args.regtest_www:
         www_folder = args.regtest_www
     else:
@@ -234,7 +234,7 @@ def main(argv):
         bailout()
         return
 
-    # get directory whith OPAL binary
+    # get directory with OPAL binary
     if args.opal_exe_path:
         os.environ['OPAL_EXE_PATH'] = args.opal_exe_path
     if not os.getenv("OPAL_EXE_PATH"):
