@@ -194,8 +194,8 @@ def main(argv):
     totalNrPassed = 0
 
     parser = argparse.ArgumentParser(description='Run regression tests.')
-    parser.add_argument('tests', metavar='tests', type=str, nargs='+',
-                    help='a regression test to run')
+    parser.add_argument('tests', metavar='tests', type=str, nargs='*',
+                        default = '', help='a regression test to run')
     parser.add_argument('--dont-publish', dest='publish_results', action='store_false',
                         default='True', help='do not publish results to web')
     parser.add_argument('--regtests-dir', dest='regdir', type=str,
