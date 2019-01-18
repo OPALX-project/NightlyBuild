@@ -197,22 +197,21 @@ compile_opal() {
 	time make -j5 || exit 1
 }
 
-run_regressiontests() {
-	if [[ -r "${keytab}" ]]; then
-		declare -rx KRB5CCNAME=$(mktemp /tmp/krb5cc_$(id -u)_XXXXXX)
-		/usr/bin/kinit -t "${keytab}" -k "${PRINCIPAL_NAME}"	|| exit 2
-		/usr/bin/aklog						|| exit 2
-	fi
+run_unit_test() {
+	[[ -n "${UNIT_TESTS_PREFIX}" ]] || return 0
+	tests_bin="${builddir}/tests/opal_unit_tests"
+	[[ -x "${tests_bin}" ]] || return 0
+	mkdir -p "${UNIT_TESTS_DIR}"
+	echo "${UNIT_TESTS_DIR}"
+	local today=$(date +%Y-%m-%d)
+	${builddir}/tests/opal_unit_tests --gtest_output=xml:${UNIT_TESTS_DIR}/results_${today}.xml
+}
 
+run_regressiontests() {
 	mkdir -p "${REGTEST_WWW}"
 
 	opts+=( "--regtests-dir=${testsdir}" )
 	"${run_tests}" "${opts[@]}" "${tests[@]}"
-
-	if [[ -r "${keytab}" ]]; then
-		/usr/bin/unlog
-		/usr/bin/kdestroy
-	fi
 }
 
 main() {
@@ -236,7 +235,7 @@ main() {
 	fi
 	source "${confdir}/regression_tests.conf"
 
-	# these shell variable must be set for the tests
+	# these shell variable are used in the tests
 	declare -rx OPAL_EXE_PATH="${builddir}/src"
 	declare -r opalbin="${builddir}/src/opal"
 
@@ -245,10 +244,13 @@ main() {
 	if [[ -z "${REGTEST_WWW}" ]]; then
 		REGTEST_WWW="${PUBLISH_DIR}/${arg_branch}"
 	fi
+	UNIT_TESTS_DIR+="${UNIT_TESTS_PREFIX}/${arg_branch}"
 	if [[ "${arg_enable_dks}" == 'yes' ]]; then
 		REGTEST_WWW+="-DKS"
+		UNIT_TESTS_DIR+="-DKS"
 		if [[ "${arg_use_dks}" == 'yes' ]]; then
 			REGTEST_WWW+="-USED"
+			UNIT_TESTS_DIR+="-USED"
 		fi
 	fi
 
@@ -273,8 +275,21 @@ main() {
 	fi
 
 	if [[ ${arg_force_run} == 'yes' ]] ; then
+		if [[ -r "${keytab}" ]]; then
+			declare -rx KRB5CCNAME=$(mktemp /tmp/krb5cc_$(id -u)_XXXXXX)
+			/usr/bin/kinit -t "${keytab}" -k "${PRINCIPAL_NAME}"	|| exit 2
+			/usr/bin/aklog						|| exit 2
+		fi
+
+		echo "Running unit tests..."
+		run_unit_test
 		echo "Running regression tests..."
 		run_regressiontests || exit 1
+
+		if [[ -r "${keytab}" ]]; then
+			/usr/bin/unlog
+			/usr/bin/kdestroy
+		fi
 	fi
 }
 
