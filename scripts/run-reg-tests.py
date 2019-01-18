@@ -194,8 +194,8 @@ def main(argv):
     totalNrPassed = 0
 
     parser = argparse.ArgumentParser(description='Run regression tests.')
-    parser.add_argument('tests', metavar='tests', type=str, nargs='+',
-                    help='a regression test to run')
+    parser.add_argument('tests', metavar='tests', type=str, nargs='*',
+                        default = '', help='a regression test to run')
     parser.add_argument('--dont-publish', dest='publish_results', action='store_false',
                         default='True', help='do not publish results to web')
     parser.add_argument('--regtests-dir', dest='regdir', type=str,
@@ -223,7 +223,7 @@ def main(argv):
         bailout()
         return
 
-    # get directorx where to store results
+    # get directory where to store results
     if args.regtest_www:
         www_folder = args.regtest_www
     else:
@@ -234,7 +234,7 @@ def main(argv):
         bailout()
         return
 
-    # get directory whith OPAL binary
+    # get directory with OPAL binary
     if args.opal_exe_path:
         os.environ['OPAL_EXE_PATH'] = args.opal_exe_path
     if not os.getenv("OPAL_EXE_PATH"):
