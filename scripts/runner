@@ -202,9 +202,26 @@ run_unit_test() {
 	tests_bin="${builddir}/tests/opal_unit_tests"
 	[[ -x "${tests_bin}" ]] || return 0
 	mkdir -p "${UNIT_TESTS_DIR}"
-	echo "${UNIT_TESTS_DIR}"
 	local today=$(date +%Y-%m-%d)
-	${builddir}/tests/opal_unit_tests --gtest_output=xml:${UNIT_TESTS_DIR}/results_${today}.xml
+	local output_file="${UNIT_TESTS_DIR}/results_${today}".xml
+	${builddir}/tests/opal_unit_tests --gtest_output=xml:"${output_file}"
+	sed -n -i 'p;1a <?xml-stylesheet type="text/xsl" href="results.xsl"?>' "${output_file}" 
+
+	local -i tests
+	local -i failures
+	local -i disabled
+	local -i errors
+
+	eval $(awk '/<testsuites / {printf "%s %s %s %s\n", $2, $3, $4, $5}' "${output_file}")
+
+	test_overview="[ total: ${tests} "
+	test_overview+="| failures: ${failures} "
+	test_overview+="| disabled: ${disabled} "
+	test_overview+="| errors: ${errors} ] <br/>"
+
+	line="<a href=\"${output_file##*/}\">${today}</a> ${test_overview}"
+
+	sed -i "/  <body>/a ${line}" "${UNIT_TESTS_DIR}/index.html"
 }
 
 run_regressiontests() {
