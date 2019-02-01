@@ -255,12 +255,13 @@ def main(argv):
     # clean old results
     d = datetime.date.today()
     srcdir = os.path.join (regdir, "results", d.isoformat(), "plots")
-    dstdir = os.path.join (www_folder, "plots_" + d.isoformat())
 
     if os.path.isdir(srcdir):
         shutil.rmtree(srcdir)
-    if os.path.isdir(dstdir):
-        shutil.rmtree(dstdir)
+    if www_folder:
+        dstdir = os.path.join (www_folder, "plots_" + d.isoformat())
+        if os.path.isdir(dstdir):
+            shutil.rmtree(dstdir)
 
     ####
     # scan for valid tests in specified directory and
