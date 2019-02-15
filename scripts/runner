@@ -101,15 +101,6 @@ if [[ ${arg_publish_results} != 'yes' ]]; then
 	opts+=( "--dont-publish" )
 fi
 
-declare -a cmake_config=()
-cmake_config+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
-cmake_config+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
-cmake_config+=( "-DBUILD_OPAL_UNIT_TESTS=TRUE" )
-
-if [[ "${arg_enable_dks}" == 'yes' ]]; then
-	cmake_config+=( "-DENABLE_DKS=TRUE" )
-fi
-
 declare branch_subdir="${arg_branch}"
 [[ "${arg_enable_dks}" == 'yes' ]] && branch_subdir+='-DKS'
 [[ "${arg_enable_dks}" == 'yes' ]] && [[ "${arg_use_dks}" == 'yes' ]] && branch_subdir+='-USED'
@@ -140,6 +131,17 @@ declare -r confdir="${testsbase}/conf"
 
 declare -r keytab="${HOME}/.keytab"
 
+declare -a cmake_config=()
+load_cmake_config() {
+	cmake_config+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
+	cmake_config+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
+	cmake_config+=( "-DBUILD_OPAL_UNIT_TESTS=TRUE" )
+
+	if [[ "${arg_enable_dks}" == 'yes' ]]; then
+		cmake_config+=( "-DENABLE_DKS=TRUE" )
+	fi
+	test -r "${confdir}/cmake.conf" && source "$_"
+}
 
 load_modules() {
 	source "${confdir}/modules.conf"
@@ -193,6 +195,7 @@ compile_opal() {
 	rm -rf "${builddir}"	|| exit 1
 	mkdir "${builddir}"	|| exit 1
 	cd "${builddir}"	|| exit 1
+	load_cmake_config	|| exit 1
 	cmake "${cmake_config[@]}" "${srcdir}"
 	time make -j5 || exit 1
 }
