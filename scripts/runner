@@ -13,7 +13,7 @@ PATH+=":/opt/local/bin:/usr/local/bin"
 declare -rx MACOSX_DEPLOYMENT_TARGET=10.9
 
 declare -r GIT_SERVER='gitlab.psi.ch'
-declare -r SRC_REPOSITORY='OPAL/src.git'
+declare    SRC_REPOSITORY='OPAL/src.git'
 declare -r TESTS_REPOSITORY='OPAL/regression-tests.git'
 
 #exec 1> $0.stdout
@@ -66,6 +66,13 @@ while (( $# > 0 )); do
 		--publish-dir=* )
 			REGTEST_WWW="${1#*=}"
 			;;
+		--src-repo )
+			SRC_REPOSITORY="$2"
+			shift 1
+			;;
+		--src-repo=* )
+			SRC_REPOSITORY="${1#*=}"
+			;;
 		-f | --force )
 			arg_force_run='yes'
 			;;
@@ -101,7 +108,7 @@ if [[ ${arg_publish_results} != 'yes' ]]; then
 	opts+=( "--dont-publish" )
 fi
 
-declare branch_subdir="${arg_branch}"
+declare branch_subdir="${SRC_REPOSITORY//\//-}-${arg_branch}"
 [[ "${arg_enable_dks}" == 'yes' ]] && branch_subdir+='-DKS'
 [[ "${arg_enable_dks}" == 'yes' ]] && [[ "${arg_use_dks}" == 'yes' ]] && branch_subdir+='-USED'
 
@@ -140,7 +147,7 @@ load_cmake_config() {
 	if [[ "${arg_enable_dks}" == 'yes' ]]; then
 		cmake_config+=( "-DENABLE_DKS=TRUE" )
 	fi
-	test -r "${confdir}/cmake.conf" && source "$_"
+	test -r "${confdir}/cmake.conf" && source "$_" || :
 }
 
 load_modules() {
