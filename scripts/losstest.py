@@ -14,7 +14,6 @@ from reporter import TempXMLElement
 
 #from tools import genplot
 #from tools import readfile
-#from tools import readStatHeader
 
 class LossTest:
     """
