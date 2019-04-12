@@ -279,3 +279,17 @@ def getRevisionOpal():
         return (revRe.group(1))
     else:
         return ""
+
+"""
+Check MD5 sum. File content must be compatible with md5sum(1) output.
+
+Note: Use this function for small files only!
+"""
+def check_md5sum (fname_md5sum):
+    with open (fname_md5sum, 'r') as f:
+        first_line = f.readline ()
+        f.close()
+
+    md5sum, fname = first_line.split()
+    ok = md5sum == hashlib.md5(open(fname, 'rb').read()).hexdigest()
+    return ok
