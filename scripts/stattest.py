@@ -1,19 +1,20 @@
+#!/usr/bin/python3
+
 import os
 
 from reporter import Reporter
 from reporter import TempXMLElement
 
-from tools import genplot
-from tools import readfile
-from tools import readStatHeader
+import tools
 
 class StatTest:
 
-    def __init__(self, var, quant, eps, simname):
+    def __init__(self, var, quant, eps, dir, name):
         self.var = var
         self.quant = quant
         self.eps = eps
-        self.simname = simname
+        self.dir = dir
+        self.name = name
 
     """
     method parses a stat-file and returns found variable
@@ -21,8 +22,8 @@ class StatTest:
     def readStatVariable(self, filename):
         vars = []
         nrCol = -1
-
-        header = readStatHeader(filename + ".stat")
+        filename += ".stat"
+        header = tools.readStatHeader(filename)
         readLines = header['number of lines']
         numScalars = len(header['parameters'])
 
@@ -30,7 +31,7 @@ class StatTest:
             varData = header['columns'][self.var]
             nrCol = varData['column']
 
-        lines = readfile(filename + ".stat")
+        lines = tools.readfile(filename)
 
         if nrCol > -1:
             for line in lines[(readLines + numScalars):]:
@@ -55,8 +56,8 @@ class StatTest:
         delta_report = TempXMLElement("delta")
         plot_report = TempXMLElement("plot")
 
-        if not os.path.isfile(self.simname + ".stat"):
-            rep.appendReport("ERROR: no statfile %s \n" % self.simname)
+        if not os.path.isfile(os.path.join(self.dir, self.name + ".stat")):
+            rep.appendReport("ERROR: no statfile %s \n" % self.name)
             rep.appendReport("\t Test %s(%s) broken \n" % (self.var,self.quant))
             passed_report.appendTextNode("broken")
             delta_report.appendTextNode("-")
@@ -67,10 +68,10 @@ class StatTest:
             root.appendChild(delta_report)
             return False
 
-        readvar_sim = self.readStatVariable(self.simname)
-        readvar_ref = self.readStatVariable("reference/" + self.simname)
+        readvar_sim = self.readStatVariable(os.path.join(self.dir, self.name))
+        readvar_ref = self.readStatVariable(os.path.join(self.dir, "reference", self.name))
 
-        plotfilename = genplot(self.simname, self.var)
+        plotfilename = tools.genplot(self.dir, self.name, self.var)
 
         if readvar_sim == [] or readvar_ref == []:
             rep.appendReport("Error: unknown variable (%s) selected for stat test\n" % self.var)
