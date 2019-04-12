@@ -1,4 +1,5 @@
-#!/bin/env python
+#!/usr/bin/env python
+
 import datetime
 import sys
 import subprocess
@@ -9,7 +10,6 @@ import argparse
 
 from reporter import Reporter
 from reporter import TempXMLElement
-
 from regressiontest import RegressionTest
 
 from tools import readfile
@@ -46,7 +46,6 @@ Regression tests must follow the following directory-layouts:
 Please make sure you use this naming scheme!
 """
 def scan_for_tests (dir):
-    rep = Reporter ()
     os.chdir (dir)
 
     tests = set ()
@@ -61,8 +60,10 @@ def scan_for_tests (dir):
                     os.path.isfile(basename + ".rt") and
                     os.path.isdir(os.path.join (test, "reference"))):
                 continue
+            if os.path.isfile(os.path.join(test, "disabled")):
+                continue
             tests.add (test)
-            rep.appendReport("Found test %s \n" % (test))
+            print("Found test %s" % (test))
     return tests
 
 
@@ -91,10 +92,9 @@ def run_regression_test (simname, run_local = True, queue_name = ''):
     totalNrPassed += rt.totalNrPassed
     rep.appendReport("\n\n")
 
-
 def bailout():
     rep = Reporter()
-    rep.appendReport("==========================================================\n")
+    rep.appendReport("\n==========================================================\n")
     rep.appendReport("Finished Regression Test on %s \n" % datetime.datetime.today())
 
     #send/print report
@@ -184,7 +184,6 @@ def publish_results (rundir, publish_dir):
 
 
 def main(argv):
-    rep = Reporter()
     rundir = sys.path[0]   # get absolute path name of this script
 
     global totalNrPassed
@@ -194,72 +193,75 @@ def main(argv):
     totalNrPassed = 0
 
     parser = argparse.ArgumentParser(description='Run regression tests.')
-    parser.add_argument('tests', metavar='tests', type=str, nargs='*',
-                        default = '', help='a regression test to run')
-    parser.add_argument('--dont-publish', dest='publish_results', action='store_false',
-                        default='True', help='do not publish results to web')
-    parser.add_argument('--regtests-dir', dest='regdir', type=str,
+    parser.add_argument('tests',
+                        metavar='tests', type=str, nargs='*', default = '',
+                        help='a regression test to run')
+    parser.add_argument('--base-dir',
+                        dest='base_dir', type=str,
                         help='base directory with regression tests')
-    parser.add_argument('--regtests-www', dest='regtest_www', type=str,
+    parser.add_argument('--publish-dir',
+                        dest='publish_dir', type=str,
                         help='publish directory')
-    parser.add_argument('--opal-exe-path', dest='opal_exe_path', type=str,
+    parser.add_argument('--opal-exe-path',
+                        dest='opal_exe_path', type=str,
                         help='directory where OPAL binary is stored')
-    parser.add_argument('--use-dks', dest='use_dks', action='store_true',
-                        default='False', help='use dynamic kernel scheduler')
+    parser.add_argument('--opal-args',
+                        dest='opal_args', type=str,
+                        help='arguments passed to OPAL')
+    parser.add_argument('--dont-publish', dest='publish_results',
+                        action='store_false', default='True',
+                        help='do not publish results')
 
     args = parser.parse_args()
-
     runtests = args.tests
 
     # get directory where regression tests are installed
-    if args.regdir:
-        regdir = args.regdir
-        if not os.path.isdir (regdir):
-            rep.appendReport("Error: specified regression test root is not a directory!")
-            bailout()
-            return
+    if args.base_dir:
+        base_dir = os.path.abspath(args.base_dir)
     else:
-        rep.appendReport ("Error: directory with regression tests not specified!")
-        bailout()
-        return
-
+        base_dir = os.getcwd()
+    if not os.path.isdir (base_dir):
+        print ("%s - regression tests base directory does not exist!" %
+               (base_dir))
+        sys.exit(1)
+    
     # get directory where to store results
-    if args.regtest_www:
-        www_folder = args.regtest_www
+    if args.publish_dir:
+        publish_dir = args.publish_dir
+    elif os.getenv("REGTEST_WWW"):
+        publish_dir = os.getenv("REGTEST_WWW")
     else:
-        www_folder = os.getenv("REGTEST_WWW")
+        publish_dir = base_dir
 
-    if (args.publish_results) and (www_folder == None):
-        rep.appendReport("Error: publish directory not specified")
-        bailout()
-        return
+    if (args.publish_results):
+        os.mkdir(base_dir)
 
     # get directory with OPAL binary
     if args.opal_exe_path:
         os.environ['OPAL_EXE_PATH'] = args.opal_exe_path
-    if not os.getenv("OPAL_EXE_PATH"):
-        rep.appendReport("Error: OPAL_EXE_PATH not set")
-        bailout()
-        return
-
-    if not os.path.isfile(os.getenv("OPAL_EXE_PATH") + "/opal"):
-        rep.appendReport("Error: OPAL_EXE_PATH is invalid")
-        bailout()
-        return
-
-    if args.use_dks == True:
-        opal_args = " --use-dks"
+    elif os.getenv("OPAL_EXE_PATH"):
+        args.opal_exe_path = os.getenv("OPAL_EXE_PATH")
+    if args.opal_exe_path:
+        opal_exec = os.path.join(args.opal_exe_path, "opal")
+        if not (os.path.isfile(opal_exec) and os.access(opal_exec, os.X_OK)):
+            print ("%s - does not exist or is not executablet!" %
+                   (opal_exec))
+            sys.exit(1)
+    else:
+        opal_exec = shutil.which("opal")
+        args.opal_exe_path = os.path.dirname(opal_exec)
+        os.environ['OPAL_EXE_PATH'] = args.opal_exe_path
 
     # done with the arguments
 
     # clean old results
     d = datetime.date.today()
-    srcdir = os.path.join (regdir, "results", d.isoformat(), "plots")
+    srcdir = os.path.join (base_dir, "results", d.isoformat(), "plots")
 
     if os.path.isdir(srcdir):
         shutil.rmtree(srcdir)
-    if www_folder:
-        dstdir = os.path.join (www_folder, "plots_" + d.isoformat())
+    if publish_dir:
+        dstdir = os.path.join (publish_dir, "plots_" + d.isoformat())
         if os.path.isdir(dstdir):
             shutil.rmtree(dstdir)
 
@@ -267,38 +269,39 @@ def main(argv):
     # scan for valid tests in specified directory and
     # check whether the requested tests are valid tests
 
-    regression_tests = scan_for_tests (regdir)
-    for test in runtests:
-        if not test in regression_tests:
-            rep.appendReport("Error: test %s does not exist!" % (test))
-            bailout ()
-            return
+    regression_tests = scan_for_tests (base_dir)
+    if runtests:
+        for test in runtests:
+            if not test in regression_tests:
+                print ("%s - unknown test!" %
+                       (test))
+                sys.exit(1)
+
+    else:
+        runtests = regression_tests
 
     ####
     # start regression tests
-    rep.appendReport("\n")
+    rep = Reporter()
     rep.appendReport("Start Regression Test on %s \n" % datetime.datetime.today())
     rep.appendReport("==========================================================\n")
     addDate(rep)
 
-    os.chdir(regdir)
+    os.chdir(base_dir)
 
     for test in sorted(regression_tests):
-        # run test if runtest is empty or test is in runtests
-        if not runtests or test in runtests:
+        if test in runtests:
             run_regression_test (test)
         else:
             rep.appendReport("User decided to skip regression test %s \n" % test)
-            rep.appendReport("\n\n")
 
     addRevisionStrings(rep)
     rep.dumpXML("results.xml")
 
     if args.publish_results:
-        publish_results (rundir, www_folder)
+        publish_results (rundir, publish_dir)
 
     bailout()
 
-#call main
 if __name__ == "__main__":
     main(sys.argv[1:])
