@@ -43,41 +43,10 @@ def sendmails(addresses, protocol, nrtest):
     if sts != 0:
         print ("Mail Sent")
 
-
-"""
-simulates a "module load" by reading the new and to append environment variables
-from the "module show" output
-"""
-def module_load(module):
-    moduleout = ""
-    if sys.version_info < (3,0):
-        moduleout = commands.getoutput("source /opt/Modules/init/bash && module show " + module)
-    else:
-        moduleout = subprocess.getoutput("source /opt/Modules/init/bash && module show " + module)
-    lines = str.split(moduleout, "\n")
-    for line in lines:
-        if line.startswith("setenv"):
-            sete = str.split(line, "\t")[2].lstrip().rstrip()
-            env = str.split(sete, " ")
-            #print ("export " + env[0] + "=" + env[1])
-            #os.putenv(env[0], env[1])
-            os.environ[env[0]] = env[1]
-
-        elif line.startswith("prepend-path"):
-            sete = str.split(line, "\t")[1].lstrip().rstrip()
-            envadd = str.split(sete, " ")
-            #print ("export " + envadd[0] + "=" + envadd[1] + ":" + envadd[0])
-            if os.getenv(envadd[0]):
-                #os.putenv(envadd[0], envadd[1] + ":" + os.getenv(envadd[0]))
-                os.environ[envadd[0]] = envadd[1] + ":" + os.getenv(envadd[0])
-            else:
-                #os.putenv(envadd[0], envadd[1])
-                os.environ[envadd[0]] = envadd[1]
-
 """
 parse header of .stat file (ASCII SDDS format)
 """
-def readStatHeader(simname):
+def readStatHeader(statfile):
     header = {'number of lines': 0,
               'columns': {},
               'parameters': {}
@@ -85,7 +54,7 @@ def readStatHeader(simname):
     numColumns = 0
     numScalars = 0
     readLines = 0
-    lines = readfile(simname)
+    lines = readfile(statfile)
     length = len(lines)
 
     for i in range(length):
@@ -143,9 +112,9 @@ def readStatHeader(simname):
 generate stat plot with gnuplot
 returns fileame
 """
-def genplot(simname, var):
-    simnames = simname + ".stat"
-    reference = "reference/" + simnames
+def genplot(dir, name, var):
+    statfile = os.path.join(dir, name + ".stat")
+    reference = os.path.join(dir, "reference", name + ".stat")
 
     name = "name=" + var
     vars = []
@@ -159,7 +128,7 @@ def genplot(simname, var):
     opalRevision = ''
     refRevision = 'reference'
 
-    header = readStatHeader(simnames)
+    header = readStatHeader(statfile)
     readLines = header['number of lines']
     revLine = header['parameters']['revision']['row']
     numScalars = len(header['parameters'])
@@ -170,7 +139,7 @@ def genplot(simname, var):
         varCol = varData['column']
         varUnit = varData['units']
 
-    lines = readfile(simnames)
+    lines = readfile(statfile)
 
     m = re.search('(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine]);
 
@@ -226,10 +195,10 @@ def genplot(simname, var):
     filename = ""
     d = datetime.date.today()
     if varCol > -1:
-        filename = simname + "_" + var + "_" + str(d.day) + "_" + str(d.month) + "_" + str(d.year)
+        filename = name + "_" + var + "_" + str(d.day) + "_" + str(d.month) + "_" + str(d.year)
         plotcmd = "set terminal post enh col 20\n"
         plotcmd += "set output '" + filename + ".ps'\n"
-        plotcmd += "set title '" + simname + "'\n"
+        plotcmd += "set title '" + name + "'\n"
         plotcmd += "set key below\n"
         plotcmd += "set ytics nomirror\n"
         plotcmd += "set y2tics\n"
