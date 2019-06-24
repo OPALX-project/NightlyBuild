@@ -262,6 +262,7 @@ main() {
 	fi
 	source "${confdir}/regression_tests.conf"
 
+	test -r "${confdir}/environment.conf" && source "$_"
 	# these shell variable are used in the tests
 	declare -rx OPAL_EXE_PATH="${builddir}/src"
 	declare -r opalbin="${builddir}/src/opal"
