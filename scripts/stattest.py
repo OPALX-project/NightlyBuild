@@ -72,6 +72,8 @@ class StatTest:
         readvar_ref = self.readStatVariable(os.path.join(self.dir, "reference", self.name))
 
         plotfilename = tools.genplot(self.dir, self.name, self.var)
+        print ("cwd = %s" % (os.getcwd()))
+        print ("plotfilename = %s" % (plotfilename))
 
         if readvar_sim == [] or readvar_ref == []:
             rep.appendReport("Error: unknown variable (%s) selected for stat test\n" % self.var)
