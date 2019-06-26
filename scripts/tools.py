@@ -7,6 +7,7 @@ import os
 import datetime
 import re
 import pprint
+import hashlib
 
 """
 parse linefile into list and strip newline
@@ -116,6 +117,8 @@ def genplot(dir, name, var):
     statfile = os.path.join(dir, name + ".stat")
     reference = os.path.join(dir, "reference", name + ".stat")
 
+    print ("statfile = %s" % (statfile))
+
     name = "name=" + var
     vars = []
     numberColumns = 0
@@ -215,6 +218,7 @@ def genplot(dir, name, var):
             os.system("convert -rotate 90 " + filename + ".ps " + filename + ".png")
             commands.getoutput("rm " + filename + ".ps data1.dat data2.dat")
         else:
+            print ("communicate with gnuplot")
             plot.communicate(bytes(plotcmd, "UTF-8"))
             os.system("convert -rotate 90 " + filename + ".ps " + filename + ".png")
             subprocess.getoutput("rm " + filename + ".ps data1.dat data2.dat")
