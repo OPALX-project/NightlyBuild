@@ -221,11 +221,11 @@ class RegressionTest:
         if "stat" in test:
             rtest = stattest.StatTest(var, params[0], float(params[1]), self.dirname, self.simname)
         elif "out" in test:
-            rtest = outtest.OutTest(var, params[0], float(params[1]), root, self.simname)
+            rtest = outtest.OutTest(var, params[0], float(params[1]), self.dirname, self.simname)
         elif "lbal" in test:
-            rtest = lbaltest.LbalTest(var, params[0], float(params[1]), root, self.simname)
+            rtest = lbaltest.LbalTest(var, params[0], float(params[1]), self.dirname, self.simname)
         elif test.split()[0][-4:] == "loss":
-            rtest = losstest.LossTest(var, params[0], float(params[1]), root, test.split()[0])
+            rtest = losstest.LossTest(var, params[0], float(params[1]), self.dirname, test.split()[0])
         else:
             rep = Reporter()
             rep.appendReport("Error: unknown test type %s\n" % nameparams[0])
