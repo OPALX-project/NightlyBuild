@@ -24,8 +24,9 @@ import losstest
 
 class RegressionTest:
 
-    def __init__(self, dir, simname, args, resultdir):
-        self.dirname = dir
+    def __init__(self, base_dir, simname, args, resultdir):
+        print ("base_dir=%s, simname=%s\n" % (dir, simname))
+        self.dirname = os.path.join (base_dir, simname)
         self.simname = simname
         self.args = args
         self.resultdir = resultdir
@@ -218,13 +219,13 @@ class RegressionTest:
         params = str.split(nameparams[2].lstrip(), " ")
         rtest = 0
         if "stat" in test:
-            rtest = stattest.StatTest(var, params[0], float(params[1]), self.simname)
+            rtest = stattest.StatTest(var, params[0], float(params[1]), self.dirname, self.simname)
         elif "out" in test:
-            rtest = outtest.OutTest(var, params[0], float(params[1]), self.simname)
+            rtest = outtest.OutTest(var, params[0], float(params[1]), root, self.simname)
         elif "lbal" in test:
-            rtest = lbaltest.LbalTest(var, params[0], float(params[1]), self.simname)
+            rtest = lbaltest.LbalTest(var, params[0], float(params[1]), root, self.simname)
         elif test.split()[0][-4:] == "loss":
-            rtest = losstest.LossTest(var, params[0], float(params[1]), test.split()[0])
+            rtest = losstest.LossTest(var, params[0], float(params[1]), root, test.split()[0])
         else:
             rep = Reporter()
             rep.appendReport("Error: unknown test type %s\n" % nameparams[0])
