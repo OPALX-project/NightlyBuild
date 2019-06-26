@@ -7,13 +7,13 @@ import os
 import shutil
 import re
 import argparse
+import hashlib
 
 from reporter import Reporter
 from reporter import TempXMLElement
 from regressiontest import RegressionTest
 
 from tools import readfile
-from tools import module_load
 from tools import sendmails
 from tools import getRevisionTests
 from tools import getRevisionOpal
@@ -71,14 +71,14 @@ def scan_for_tests (dir):
 Run a single regression test
 """
 
-def run_regression_test (simname, run_local = True, queue_name = ''):
+def run_regression_test (base_dir, simname, run_local = True, queue_name = ''):
 
     global totalNrPassed
     global totalNrTests
 
     rep = Reporter()
     d = datetime.date.today()
-    resultdir = os.path.join ("results", d.isoformat(), simname)
+    resultdir = os.path.join (base_dir, "results", d.isoformat(), simname)
     if not os.path.isdir(resultdir):
         os.makedirs (resultdir)
 
@@ -86,7 +86,7 @@ def run_regression_test (simname, run_local = True, queue_name = ''):
     simulation_report.addAttribute("name", simname)
     simulation_report.addAttribute("date", "%s" % d)
 
-    rt = RegressionTest (simname, simname, opal_args, resultdir)
+    rt = RegressionTest (base_dir, simname, opal_args, resultdir)
     rt.run (simulation_report, run_local, queue_name)
     totalNrTests += rt.totalNrTests
     totalNrPassed += rt.totalNrPassed
@@ -233,7 +233,7 @@ def main(argv):
     else:
         publish_dir = base_dir
 
-    if (args.publish_results):
+    if (args.publish_results and not os.path.exists(publish_dir)):
         os.mkdir(base_dir)
 
     # get directory with OPAL binary
@@ -291,7 +291,8 @@ def main(argv):
 
     for test in sorted(regression_tests):
         if test in runtests:
-            run_regression_test (test)
+            dir = os.path.join (base_dir, test)
+            run_regression_test (base_dir, test)
         else:
             rep.appendReport("User decided to skip regression test %s \n" % test)
 
