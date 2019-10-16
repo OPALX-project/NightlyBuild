@@ -1,21 +1,20 @@
 
-from tools import readfile
-
 class LbalTest:
 
-    def __init__(self, var, quant, eps, simname):
+    def __init__(self, var, quant, eps, dir, simname):
         self.var = var
         self.quant = quant
         self.eps = eps
+        self.dir = dir
         self.simname = simname
 
 
-    def readLbalFile(self, filename):
+    def readLbalFile(self, fname):
 
         lbal = []
-        lines = readfile(filename + ".lbal")
-        #nrprocs = int(lines[0])
-        lines = lines[1::]
+        with open(fname+".lbal", "r") as infile:
+            lines = [line.rstrip('\n') for line in infile][1::]
+
         for line in lines:
             vals = str.split(line, "\t")
             lbal.append(vals)
@@ -24,7 +23,7 @@ class LbalTest:
     method performs a test for "var" with reference file in a specific
     mode ("quant") for a specific accuracy ("eps")
     """
-    def performTest(self, root):
+    def checkResult(self, root):
 
         readvar_sim = readLbalFile(simname)
         readvar_ref = readLbalFile("reference/" + simname)

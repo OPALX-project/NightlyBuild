@@ -21,7 +21,6 @@ declare -r TESTS_REPOSITORY='OPAL/regression-tests.git'
 
 # 
 declare	arg_force_run='no'
-declare arg_publish_results='yes'
 declare	arg_branch='master'
 declare arg_protocol='https'
 declare arg_compile_only='no'
@@ -37,12 +36,6 @@ while (( $# > 0 )); do
 	case $1 in
 		--compile-only )
 			arg_compile_only='yes'
-			;;
-		--do-publish )
-			arg_publish_results=='yes'
-			;;
-		--dont-publish )
-			arg_publish_results=='no'
 			;;
 		--enable-dks )
 			arg_enable_dks='yes'
@@ -103,10 +96,6 @@ else
 fi
 declare -r src_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${SRC_REPOSITORY}")
 declare -r tests_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${TESTS_REPOSITORY}")
-
-if [[ ${arg_publish_results} != 'yes' ]]; then
-	opts+=( "--dont-publish" )
-fi
 
 declare branch_subdir="${SRC_REPOSITORY//\//-}-${arg_branch}"
 [[ "${arg_enable_dks}" == 'yes' ]] && branch_subdir+='-DKS'
@@ -237,7 +226,7 @@ run_unit_test() {
 run_regressiontests() {
 	mkdir -p "${REGTEST_WWW}"
 
-	opts+=( "--regtests-dir=${testsdir}" )
+	opts+=( "--base-dir=${testsdir}" )
 	"${run_tests}" "${opts[@]}" "${tests[@]}"
 }
 

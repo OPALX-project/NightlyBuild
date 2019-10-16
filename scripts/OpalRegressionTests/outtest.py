@@ -1,26 +1,27 @@
 import os
 
-from reporter import Reporter
-from reporter import TempXMLElement
-
-from tools import readfile
+from OpalRegressionTests.reporter import Reporter
+from OpalRegressionTests.reporter import TempXMLElement
 
 class OutTest:
 
-    def __init__(self, var, quant, eps, simname):
+    def __init__(self, var, quant, eps, dir, simname):
         self.var = var
         self.quant = quant
         self.eps = eps
+        self.dir = dir
         self.simname = simname
 
     """
     method parses an out-file and returns found variables as tuples
     """
-    def readOutVariable(self, filename):
+    def readOutVariable(self, fname):
         vars = []
         nrCol = 0
         numScalars = 0
-        lines = readfile(filename + ".out")
+        fname += ".out"
+        with open(fname, "r") as infile:
+            lines = [line.rstrip('\n') for line in infile]
 
         for line in lines:
             if self.var in line:
@@ -110,7 +111,7 @@ class OutTest:
     """
     method performs a test for "var" with reference file in a specific mode ("quant") for a specific accuracy ("eps")
     """
-    def performTest(self, root):
+    def checkResult(self, root):
         rep = Reporter()
         val = list()
         passed = True

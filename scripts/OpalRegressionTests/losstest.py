@@ -1,19 +1,7 @@
-#import subprocess
-#import glob
-#import datetime
 import os
-#import time
-#import sys
-#import shutil
-#import pathlib
-#import threading
-#import hashlib
 
-from reporter import Reporter
-from reporter import TempXMLElement
-
-#from tools import genplot
-#from tools import readfile
+from OpalRegressionTests.reporter import Reporter
+from OpalRegressionTests.reporter import TempXMLElement
 
 class LossTest:
     """
@@ -37,7 +25,7 @@ class LossTest:
           of <Turn id> and <Element id>
     """
 
-    def __init__(self, variable, quantity, tolerance, loss_file_name):
+    def __init__(self, variable, quantity, tolerance, dir, loss_file_name):
         """
         Initialise the test
         """
@@ -57,9 +45,10 @@ class LossTest:
             raise KeyError("Did not recognise LossTest mode "+str(self.mode)+\
                            " Try one of "+str(self.mode_list.keys()))
         self.tolerance = tolerance
+        self.dir = dir
         self.file_name = loss_file_name
 
-    def performTest(self, root):
+    def checkResult(self, root):
         """
         Run the test and add output to the report
         """

@@ -18,7 +18,10 @@ class RegressionTest:
         
     def performTests(self, root):
         rep = Reporter()
-        tests = tools.readfile(os.path.join(self.dir, self.name + ".rt"))
+        fname = os.path.join(self.dir, self.name + ".rt")
+        with open(fname,"r") as infile:
+            tests = [line.rstrip('\n') for line in infile]
+
         description = tests[0].lstrip("\"").rstrip("\"")
         rep.appendChild(root)
         tests = tests[1::] #strip first line
