@@ -1,0 +1,2 @@
+from OpalRegressionTests.regressiontest import OpalRegressionTests
+

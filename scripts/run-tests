@@ -1,7 +1,7 @@
 #!/bin/bash
 
-declare -ri EC_ARG_ERROR=1
-declare -ri EC_GIT_ERROR=10
+declare -ri	EC_ARG_ERROR=1
+declare -ri	EC_GIT_ERROR=10
 
 # for Macports
 # :FIXME: do we need this?
@@ -9,26 +9,45 @@ declare -ri EC_GIT_ERROR=10
 #	 	support the option '-f'
 PATH+=":/opt/local/bin:/usr/local/bin"
 
-# for Mac OS 
-declare -rx MACOSX_DEPLOYMENT_TARGET=10.9
+# for Mac OS
+declare -rx	MACOSX_DEPLOYMENT_TARGET=10.12
 
-declare -r GIT_SERVER='gitlab.psi.ch'
-declare    SRC_REPOSITORY='OPAL/src.git'
-declare -r TESTS_REPOSITORY='OPAL/regression-tests.git'
+#-----------------------------------------------------------------------------
+# handle arguments
+#
 
-#exec 1> $0.stdout
-#exec 2> $0.stderr
+# default URL for OPAL source and regression-tests repository
+declare		src_repo_url='https://gitlab.psi.ch/OPAL/src.git'
+declare		tests_repo_url='https://gitlab.psi.ch/OPAL/regression-tests.git'
 
-# 
-declare	arg_force_run='no'
-declare arg_publish_results='yes'
-declare	arg_branch='master'
-declare arg_protocol='https'
-declare arg_compile_only='no'
-declare arg_enable_dks='no'
-declare arg_use_dks='no'
+# run regression tests even if nothing has been changed
+declare		arg_force_run='no'
 
-declare -x REGTEST_WWW=''
+# default branch for OPAL sources and regression tests
+declare		arg_branch='master'
+
+# compile only
+declarei	arg_compile_only='no'
+
+# absolute or relative directory where to publish the results
+# of the regression tests. If empty, nothing will be published.
+declare -x	publish_dir=''
+
+# absolute or relative directory where to publish the results
+# of the unit tests. If empty, nothing will be published.
+declare 	publish_dir_unittests=''
+
+# relative  directory where to clone the Git source repository
+# if empty and 'publish_dir' is specified, use base-name of it
+# if neither is specified, use name of branch (which defaults
+# to master)
+declare -x	repo_dir=''
+
+# arguments passed to CMake
+declare -a	cmake_args=()
+
+# arguments passed to OPAL
+declare -a	opal_args=()
 
 # arguments passed to the regression test runner
 declare	-a opts=()
@@ -38,40 +57,54 @@ while (( $# > 0 )); do
 		--compile-only )
 			arg_compile_only='yes'
 			;;
-		--do-publish )
-			arg_publish_results=='yes'
-			;;
-		--dont-publish )
-			arg_publish_results=='no'
-			;;
-		--enable-dks )
-			arg_enable_dks='yes'
-			;;
-		--use-dks )
-			arg_enable_dks='yes'
-			arg_use_dks='yes'
-			opts+=( '--use-dks' )
-			;;
-		--protocol )
-			arg_protocol="$2"
+		--cmake-args )
+			cmake_args+=( $2 )
 			shift 1
 			;;
-		--protocol=* )
-			arg_protocol="${1#*=}"
+		--cmake-args=* )
+			cmake_args+=( ${1#*=} )
+			;;
+		--opal-args )
+			opal_args+=("$2")
+			shift 1
+			;;
+		--opal-args=* )
+			opal_args+=("${1#*=}")
 			;;
 		--publish-dir )
-			REGTEST_WWW="$2"
+			publish_dir="$2"
 			shift 1
 			;;
 		--publish-dir=* )
-			REGTEST_WWW="${1#*=}"
+			publish_dir="${1#*=}"
 			;;
-		--src-repo )
-			SRC_REPOSITORY="$2"
+		--publish-dir-unittests )
+			publish_dir_unittests="$2"
 			shift 1
 			;;
-		--src-repo=* )
-			SRC_REPOSITORY="${1#*=}"
+		--publish-dir-unittests=* )
+			publish_dir_unittests="${1#*=}"
+			;;
+		--repo-dir )
+			repo_dir="$2"
+			shift 1
+			;;
+		--repo-dir=* )
+			repo_dir="${1#*=}"
+			;;
+		--src-repo-url )
+			src_repo_url="$2"
+			shift 1
+			;;
+		--src-repo-url=* )
+			src_repo_url="${1#*=}"
+			;;
+		--tests-repo-url )
+			tests_repo_url="$2"
+			shift 1
+			;;
+		--tests-repo-url=* )
+			tests_repo_url="${1#*=}"
 			;;
 		-f | --force )
 			arg_force_run='yes'
@@ -87,30 +120,9 @@ while (( $# > 0 )); do
 	shift 1
 done
 
-case "${arg_protocol}" in
-	https | git )
-		:
-		;;
-	* )
-		echo "Protocoll for Git must be either 'https' or 'git'!" 1>&2 && exit ${EC_ARG_ERROR}
-		;;
-esac
-
-if [[ "${arg_protocol}" == 'https' ]]; then
-	declare fmt_g="https://%s/%s"
-else
-	declare fmt_g="git@%s:%s"
+if [[ -z "${repo_dir}" ]]; then
+	repo_dir=${arg_branch}
 fi
-declare -r src_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${SRC_REPOSITORY}")
-declare -r tests_repo_g=$(printf "${fmt_g}" "${GIT_SERVER}" "${TESTS_REPOSITORY}")
-
-if [[ ${arg_publish_results} != 'yes' ]]; then
-	opts+=( "--dont-publish" )
-fi
-
-declare branch_subdir="${SRC_REPOSITORY//\//-}-${arg_branch}"
-[[ "${arg_enable_dks}" == 'yes' ]] && branch_subdir+='-DKS'
-[[ "${arg_enable_dks}" == 'yes' ]] && [[ "${arg_use_dks}" == 'yes' ]] && branch_subdir+='-USED'
 
 #.............................................................................
 # directory layout
@@ -129,7 +141,7 @@ declare -r abs_scriptname=$(readlink -f "$0")
 declare -r bindir="${abs_scriptname%/*}"
 declare -r prefix="${bindir%/*}"
 declare -r workspace="${prefix}/workspace"
-declare -r branchdir="${workspace}/${branch_subdir}"
+declare -r branchdir="${workspace}/${repo_dir}"
 declare -r srcdir="${branchdir}/src"
 declare    builddir="${branchdir}/build"
 declare -r testsbase="${branchdir}/tests"
@@ -137,22 +149,6 @@ declare -r testsdir="${testsbase}/RegressionTests"
 declare -r confdir="${testsbase}/conf"
 
 declare -r keytab="${HOME}/.keytab"
-
-declare -a cmake_config=()
-load_cmake_config() {
-	cmake_config+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
-	cmake_config+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
-	cmake_config+=( "-DBUILD_OPAL_UNIT_TESTS=TRUE" )
-
-	if [[ "${arg_enable_dks}" == 'yes' ]]; then
-		cmake_config+=( "-DENABLE_DKS=TRUE" )
-	fi
-	test -r "${confdir}/cmake.conf" && source "$_" || :
-}
-
-load_modules() {
-	source "${confdir}/modules.conf"
-}
 
 clone_repo() {
 	local -r repo_url="$1"
@@ -202,18 +198,18 @@ compile_opal() {
 	rm -rf "${builddir}"	|| exit 1
 	mkdir "${builddir}"	|| exit 1
 	cd "${builddir}"	|| exit 1
-	load_cmake_config	|| exit 1
-	cmake "${cmake_config[@]}" "${srcdir}"
+	cmake "${cmake_args[@]}" "${srcdir}"
 	time make -j5 || exit 1
 }
 
 run_unit_test() {
-	[[ -n "${UNIT_TESTS_PREFIX}" ]] || return 0
+	[[ -n "${publish_dir_unittests}" ]] || return 0
 	tests_bin="${builddir}/tests/opal_unit_tests"
 	[[ -x "${tests_bin}" ]] || return 0
-	mkdir -p "${UNIT_TESTS_DIR}"
+
+	mkdir -p "${publish_dir_unittests}"
 	local today=$(date +%Y-%m-%d)
-	local output_file="${UNIT_TESTS_DIR}/results_${today}".xml
+	local output_file="${publish_dir_unittests}/results_${today}".xml
 	${builddir}/tests/opal_unit_tests --gtest_output=xml:"${output_file}"
 	sed -n -i 'p;1a <?xml-stylesheet type="text/xsl" href="results.xsl"?>' "${output_file}" 
 
@@ -231,14 +227,30 @@ run_unit_test() {
 
 	line="<a href=\"${output_file##*/}\">${today}</a> ${test_overview}"
 
-	sed -i "/  <body>/a ${line}" "${UNIT_TESTS_DIR}/index.html"
+	if [[ ! -e "${publish_dir_unittests}/index.html" ]]; then
+		echo "<head>
+  <body>
+  </body>
+</head>
+" > "${publish_dir_unittests}/index.html"
+	fi
+	if [[ ! -e "${publish_dir_unittests}/result.xsl" ]]; then
+		cp -v "${bindir}/html/gtest-result.xsl" "${publish_dir_unittests}/results.xsl"
+	fi
+	sed -i "/  <body>/a ${line}" "${publish_dir_unittests}/index.html"
 }
 
 run_regressiontests() {
-	mkdir -p "${REGTEST_WWW}"
-
-	opts+=( "--regtests-dir=${testsdir}" )
-	"${run_tests}" "${opts[@]}" "${tests[@]}"
+	if [[ -n "${publish_dir}" ]]; then
+		mkdir -p "${publish_dir}"
+		opts+=("--publish-dir=${publish_dir}")
+	fi
+	if [[ -n "${opal_args}" ]]; then
+		opts+=(${opal_args[@]/#/--opal-args=})
+	fi
+	opts+=("--opal-exe-path=${builddir}/src")
+	opts+=("--base-dir=${testsdir}")
+	"${run_tests}" "${opts[@]}" "--" "${tests[@]}"
 }
 
 main() {
@@ -246,7 +258,7 @@ main() {
 	#.....................................................................
 	if [[ ! -d "${testsdir}" ]]; then
 		echo "Cloning regression tests repository..."
-		clone_repo "${tests_repo_g}" "${testsbase}"	|| exit ${EC_GIT_ERROR}
+		clone_repo "${tests_repo_url}" "${testsbase}"	|| exit ${EC_GIT_ERROR}
 	else
 		echo "Updating regression tests repository..."
 		update_repo "${testsbase}"
@@ -260,34 +272,15 @@ main() {
 		echo "Configuration of regression tests cannot be read!" 1>&2
 		exit 2
 	fi
-	source "${confdir}/regression_tests.conf"
 
-	test -r "${confdir}/environment.conf" && source "$_"
-	# these shell variable are used in the tests
-	declare -rx OPAL_EXE_PATH="${builddir}/src"
 	declare -r opalbin="${builddir}/src/opal"
 
 	declare -r run_tests="${bindir}/run-reg-tests.py"
 
-	if [[ -z "${REGTEST_WWW}" ]]; then
-		REGTEST_WWW="${PUBLISH_DIR}/${arg_branch}"
-	fi
-	UNIT_TESTS_DIR+="${UNIT_TESTS_PREFIX}/${arg_branch}"
-	if [[ "${arg_enable_dks}" == 'yes' ]]; then
-		REGTEST_WWW+="-DKS"
-		UNIT_TESTS_DIR+="-DKS"
-		if [[ "${arg_use_dks}" == 'yes' ]]; then
-			REGTEST_WWW+="-USED"
-			UNIT_TESTS_DIR+="-USED"
-		fi
-	fi
-
-	load_modules
-
 	#.....................................................................
 	if [[ ! -d "${srcdir}" ]]; then
 		echo "Cloning OPAL source repository..."
-		clone_repo "${src_repo_g}" "${srcdir}"	|| exit ${EC_GIT_ERROR}
+		clone_repo "${src_repo_url}" "${srcdir}"	|| exit ${EC_GIT_ERROR}
 	else
 		echo "Updating OPAL source repository..."
 		update_repo "${srcdir}"

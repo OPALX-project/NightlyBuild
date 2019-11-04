@@ -43,7 +43,7 @@ class Reporter:
 
         return self.xml_report
 
-    def dumpXML(self, filename):
+    def dumpXML(self, filename, plots_dir):
         xmlRep = getattr(self, 'xml_report', None)
         if not xmlRep:
             return
@@ -52,10 +52,10 @@ class Reporter:
             'type="text/xsl" href="results.xslt"')
         root = xmlRep.firstChild
         xmlRep.insertBefore (pi, root)
-            
+        content = self.xml_report.toprettyxml(indent='  ').format(plots_dir)
         f = open (filename, "w")
         try:
-            f.write (self.xml_report.toprettyxml (indent='  '))
+            f.write (content)
         finally:
             f.close ()
 
