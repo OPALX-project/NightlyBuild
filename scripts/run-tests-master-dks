@@ -1,0 +1,86 @@
+#!/bin/bash
+
+declare -r bindir=$(dirname "$0")
+declare -a cmake_args=()
+declare -a opal_args=()
+
+#-----------------------------------------------------------------------------
+# configuration
+#
+
+#
+# repositories for sources and regression-tests
+#
+declare -r src_repo_url='https://gitlab.psi.ch/OPAL/src.git'
+declare -r tests_repo_url='https://gitlab.psi.ch/OPAL/regression-tests.git'
+
+#
+# branch to use (same for source and regression-tests)
+#
+declare -r branch='master'
+
+#
+# sub-directory for building and publishing results
+#
+declare -r repo_dir="${branch}-dks-test"
+
+#
+# base directories to publish result. Final target directories are
+#	${regtest_dir}/${repo_dir} 	to publish results of regression-tests
+#	${unittest_dir}/${repo_dir}	to publish results of unit-tests
+#
+declare -r regtest_dir='/afs/psi.ch/project/amas/webhosting/opal/regressionTests'
+declare -r unittest_dir='/afs/psi.ch/project/amas/webhosting/opal/unitTests'
+
+#
+# arguments passed to CMake
+#
+cmake_args+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
+cmake_args+=( "-DBUILD_OPAL_UNIT_TESTS=TRUE" )
+cmake_args+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
+cmake_args+=( "-DENABLE_DKS=TRUE" )
+
+#
+# arguments passed to OPAL
+#
+opal_args+=( "--use-dks" )
+
+#
+# modules to load/setup build environment
+#
+module purge
+module load cmake/3.10.3
+module load gnuplot/5.2.7
+module load Python/3.6.3
+
+module load gcc/7.4.0
+module load OpenBLAS/0.3.7
+module load gsl/2.6
+module load gtest/1.8.1
+
+module load openmpi/3.1.4
+module load amrex/18.07_3d
+module load boost/1.70.0
+module load dks/1.1.2
+module load hdf5/1.10.5
+
+module load H5hut/2.0.0rc6
+module load trilinos/12.12.1
+
+#-----------------------------------------------------------------------------
+# no changes should be required below this line!
+declare -r publish_dir="${regtest_dir}/${repo_dir}"
+declare -r publish_dir_unittests="${unittest_dir}/${repo_dir}"
+declare -r cmake_args=( "${cmake_args[@]/#/--cmake-args=}" )
+declare -r opal_args=( "${opal_args[@]/#/--opal-args=}" )
+
+bash -x "${bindir}/runner"						\
+		"${cmake_args[@]}"					\
+		"${opal_args[@]}"					\
+		--src-repo-url="${src_repo_url}"			\
+		--tests-repo-url="${tests_repo_url}"			\
+		--repo-dir=${repo_dir}					\
+		--publish-dir="${publish_dir}" 				\
+		--publish-dir-unittests="${publish_dir_unittests}"	\
+		"$@"							\
+		"${branch}"

@@ -7,8 +7,6 @@ import subprocess
 from OpalRegressionTests.reporter import Reporter
 from OpalRegressionTests.reporter import TempXMLElement
 
-import tools
-
 class StatTest:
 
     def __init__(self, var, quant, eps, prefix, name):

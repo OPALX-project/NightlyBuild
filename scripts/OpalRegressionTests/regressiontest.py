@@ -148,10 +148,10 @@ class OpalRegressionTests:
         indexhtmlout.close()
 
         # update various files to publish directory
-        shutil.copy (os.path.join (self.rundir, "ok.png"), self.publish_dir);
-        shutil.copy (os.path.join (self.rundir, "nok.png"), self.publish_dir);
-        shutil.copy (os.path.join (self.rundir, "results.xslt"), self.publish_dir)
-        shutil.copy (os.path.join (self.rundir, "accordion.js"), self.publish_dir)
+        shutil.copy (os.path.join (self.rundir, "html", "ok.png"), self.publish_dir);
+        shutil.copy (os.path.join (self.rundir, "html", "nok.png"), self.publish_dir);
+        shutil.copy (os.path.join (self.rundir, "html", "results.xslt"), self.publish_dir)
+        shutil.copy (os.path.join (self.rundir, "html", "accordion.js"), self.publish_dir)
 
 class RegressionTest:
 
@@ -303,14 +303,15 @@ class RegressionTest:
         if not os.access (self.simname+".local", os.X_OK):
             rep.appendReport ("Error: "+self.simname+".local file could not be executed\n")
 
-        cmd = [ "./" + self.simname + ".local" ]
-        cmd += self.args
+        cmd = [ os.path.join(".", self.simname + ".local") ]
+	
+        cmd.extend(self.args)
         exit_code = 0
         with open(self.simname + "-RT.o", "wb") as f:
             try:
                 print ("Running test: " + cmd[0])
                 sys.stdout.flush ()
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 out, err = proc.communicate(timeout=600)
                 print (out.decode ('utf-8'))
                 print (err.decode ('utf-8'))

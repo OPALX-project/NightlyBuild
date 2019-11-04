@@ -65,10 +65,14 @@ def main(argv):
                         dest='opal_exe_path', type=str,
                         help='directory where OPAL binary is stored')
     parser.add_argument('--opal-args',
-                        dest='opal_args', type=str, default='',
-                        help='arguments passed to OPAL')
+                        dest='opal_args', nargs='*', action='append',
+                        help='arguments passed to OPAL',
+			default=[])
 
     args = parser.parse_args()
+
+    args.opal_args = [item for sublist in args.opal_args for item in sublist]
+    print (args.opal_args)
 
     # get directory where regression tests are installed
     if args.base_dir:
