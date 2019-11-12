@@ -27,7 +27,7 @@ declare		arg_force_run='no'
 declare		arg_branch='master'
 
 # compile only
-declarei	arg_compile_only='no'
+declare		arg_compile_only='no'
 
 # absolute or relative directory where to publish the results
 # of the regression tests. If empty, nothing will be published.

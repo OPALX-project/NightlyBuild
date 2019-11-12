@@ -120,7 +120,7 @@ class OpalRegressionTests:
 
         index_fname = os.path.join (self.publish_dir, "index.html")
         if not os.path.exists(index_fname):
-            shutil.copy (os.path.join (self.rundir, "index.html"), index_fname)
+            shutil.copy (os.path.join (self.rundir, os.path.join("html", "index.html")), index_fname)
 
         # update 'index.html'
         indexhtml = open(index_fname).readlines()
