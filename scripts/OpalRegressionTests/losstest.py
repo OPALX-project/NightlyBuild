@@ -29,6 +29,7 @@ class LossTest:
         """
         Initialise the test
         """
+        print ("variable={}; quantity={}; tolerance={}; dir={}; loss_file_name={}".format(variable, quantity, tolerance, dir, loss_file_name))
         self.rep = Reporter()
         self.variable = variable
         if self.variable in self.variable_list.keys():
@@ -52,36 +53,30 @@ class LossTest:
         """
         Run the test and add output to the report
         """
-        if (not os.path.isfile(self.file_name) or
-            not os.path.isfile("reference/" + self.file_name)):
 
-            if not os.path.isfile(self.file_name):
-                self.rep.appendReport("ERROR: no loss file %s \n" % self.file_name)
-            if not os.path.isfile("reference/" + self.file_name):
-                self.rep.appendReport("ERROR: no reference file %s \n" % ("reference" + self.file_name))
+        root.addAttribute("type", "loss")
+        root.addAttribute("var", self.variable)
+        root.addAttribute("mode", self.mode)
 
+        is_broken = False
+        if not os.path.isfile(self.file_name):
+            self.rep.appendReport("ERROR: no loss file %s \n" % self.file_name)
+            is_broken = True
+
+        if not os.path.isfile("reference/" + self.file_name):
+            self.rep.appendReport("ERROR: no reference file %s \n" % ("reference" + self.file_name))
+            is_broken = True
+
+        if is_broken:
             self.rep.appendReport("\t Test %s(%s) broken \n" % (self.variable,self.mode))
-            passed_report = TempXMLElement("state")
-            eps_report = TempXMLElement("eps")
-            delta_report = TempXMLElement("delta")
-            plot_report = TempXMLElement("plot")
-
-            passed_report.appendTextNode("broken")
-            delta_report.appendTextNode("-")
-            eps_report.appendTextNode("%s" % self.tolerance)
-
-            root.addAttribute("type", "loss")
-            root.addAttribute("var", self.variable)
-            root.addAttribute("mode", self.mode)
-            root.appendChild(passed_report)
-            root.appendChild(eps_report)
-            root.appendChild(delta_report)
+            self.report(root, "broken", "-")
             return False
 
-        test_result = self.test(self) # note test() is a function pointer set at
-                                      # initialisation
-        self.report(root, *test_result)
-        return (True if test_result[1] == 'passed' else False)
+        # self.test() is a function set at initialisation
+        state, delta = self.test(self)
+
+        self.report(root, state, delta)
+        return (state == 'passed')
 
     def report(self, root, state, delta):
         """
@@ -90,29 +85,28 @@ class LossTest:
             - state indicating whether the test passed, failed or is broken
             - delta ?
         """
-        root.addAttribute("type", "loss")
-        root.addAttribute("var", self.variable)
-        root.addAttribute("mode", self.mode)
         passed_report = TempXMLElement("state")
-        eps_report = TempXMLElement("eps")
-        delta_report = TempXMLElement("delta")
-        plot_report = TempXMLElement("plot")
-
         passed_report.appendTextNode(state)
-        delta_report.appendTextNode(str(delta))
-        eps_report.appendTextNode(str(self.tolerance))
-
         root.appendChild(passed_report)
+
+        eps_report = TempXMLElement("eps")
+        eps_report.appendTextNode(str(self.tolerance))
+        root.appendChild(eps_report)
+
+        delta_report = TempXMLElement("delta")
+        delta_report.appendTextNode(str(delta))
         root.appendChild(delta_report)
 
 
     def testAll(self):
         """
         Read line-by-line through the loss file and check reference data against
-        test data
+        test data. 
 
-        Return is a tuple like if data is out of tolerance
+        Return is a tuple (state, mean_squared_error) whereby state is either
+        'passed' or 'failed'.
         """
+        print ("losstest.testAll")
         test = open(self.file_name)
         ref = open("reference/"+self.file_name)
         n = 1.
@@ -124,19 +118,19 @@ class LossTest:
                 test_data = self.readOneLine(test.readline())[2]
             while ref_data == 'parse_error':
                 ref_data = self.readOneLine(ref.readline())[2]
+
             # if any file ends, both files must end (or we fail)
             if test_data == 'end_of_file' or ref_data == 'end_of_file':
-                state = ('success' if (test_pass and \
+                state = ('passed' if (test_pass and \
                                        test_data == 'end_of_file' and\
                                        ref_data == 'end_of_file') else 'failed')
+                break
 
-                return (state, str(sum_squares**0.5/n))
-            else:
-                test_value = abs(test_data - ref_data)
-                sum_squares += test_value**2
-                n += 1.
-                test_pass = test_pass and test_value < self.tolerance
-
+            test_value = abs(test_data - ref_data)
+            sum_squares += test_value**2
+            n += 1.
+            test_pass = test_pass and test_value < self.tolerance
+        return (state, str(sum_squares**0.5/n))
 
     def testLast(self):
         raise NotImplementedError("LossTest.testLast not implemented yet")
@@ -171,3 +165,4 @@ class LossTest:
                      "track_id":7, "turn":8, "time":9}
     mode_list = {"last":testLast, "all":testAll, "error":testError,
                      "avg":testMean}
+
