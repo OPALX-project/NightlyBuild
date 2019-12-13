@@ -29,7 +29,6 @@ class LossTest:
         """
         Initialise the test
         """
-        print ("variable={}; quantity={}; tolerance={}; dir={}; loss_file_name={}".format(variable, quantity, tolerance, dir, loss_file_name))
         self.rep = Reporter()
         self.variable = variable
         if self.variable in self.variable_list.keys():
@@ -106,7 +105,6 @@ class LossTest:
         Return is a tuple (state, mean_squared_error) whereby state is either
         'passed' or 'failed'.
         """
-        print ("losstest.testAll")
         test = open(self.file_name)
         ref = open("reference/"+self.file_name)
         n = 1.
