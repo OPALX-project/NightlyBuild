@@ -149,6 +149,7 @@ declare -r testsdir="${testsbase}/RegressionTests"
 declare -r confdir="${testsbase}/conf"
 
 declare -r keytab="${HOME}/.keytab"
+declare -r PRINCIPAL_NAME='svcusr-amas_regr@D.PSI.CH'
 
 clone_repo() {
 	local -r repo_url="$1"
