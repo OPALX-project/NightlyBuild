@@ -22,7 +22,7 @@ declare -r branch='OPAL-2.0'
 #
 # sub-directory for building and publishing results
 #
-declare -r repo_dir="${branch}-test"
+declare -r repo_dir="${branch}"
 
 #
 # base directories to publish result. Final target directories are
@@ -41,7 +41,9 @@ cmake_args+=( "-DBUILD_OPAL_UNIT_TESTS=TRUE" )
 #
 # modules to load/setup build environment
 #
+source /opt/psi/config/profile.bash
 module purge
+module use unstable
 module load cmake/3.10.3
 module load gnuplot/5.2.7
 module load Python/3.6.3

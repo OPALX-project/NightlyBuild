@@ -6,21 +6,23 @@ declare -r regtest_dir='/afs/psi.ch/project/amas/webhosting/opal/regressionTests
 declare -r unittest_dir='/afs/psi.ch/project/amas/webhosting/opal/unitTests'
 
 declare -r branch='master'
-declare -r repo_dir="${branch}-test"
+declare -r repo_dir="${branch}"
 declare -r publish_dir="${regtest_dir}/${repo_dir}"
 declare -r publish_dir_unittests="${unittest_dir}/${repo_dir}"
 
 declare -a cmake_args=()
 cmake_args+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
 cmake_args+=( "-DBUILD_OPAL_UNIT_TESTS=TRUE" )
-cmake_args+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
+#cmake_args+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
 declare -r cmake_args=( "${cmake_args[@]/#/--cmake-args=}" )
 
 declare -a opal_args=()
 declare -r opal_args=( "${opal_args[@]/#/--opal-args=}" )
 
+source /opt/psi/config/profile.bash
 module purge
-module load cmake/3.10.3
+module use unstable
+module load cmake/3.14.0
 module load gnuplot/5.2.7
 module load Python/3.6.3
 

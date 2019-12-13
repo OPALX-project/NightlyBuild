@@ -22,7 +22,7 @@ declare -r branch='master'
 #
 # sub-directory for building and publishing results
 #
-declare -r repo_dir="${branch}-dks-test"
+declare -r repo_dir="${branch}-dks"
 
 #
 # base directories to publish result. Final target directories are
@@ -49,6 +49,7 @@ opal_args+=( "--use-dks" )
 # modules to load/setup build environment
 #
 module purge
+module use unstable
 module load cmake/3.10.3
 module load gnuplot/5.2.7
 module load Python/3.6.3
@@ -74,7 +75,7 @@ declare -r publish_dir_unittests="${unittest_dir}/${repo_dir}"
 declare -r cmake_args=( "${cmake_args[@]/#/--cmake-args=}" )
 declare -r opal_args=( "${opal_args[@]/#/--opal-args=}" )
 
-bash -x "${bindir}/runner"						\
+bash -x "${bindir}/run-tests"						\
 		"${cmake_args[@]}"					\
 		"${opal_args[@]}"					\
 		--src-repo-url="${src_repo_url}"			\
