@@ -268,7 +268,7 @@ class RegressionTest:
 
         description = tests[0].lstrip("\"").rstrip("\"")
         if not success:
-            description += ". Test failed with exit code %d" % (exit_code)
+            description += ". Test failed."
         simulation_report.addAttribute("description", description)
 
         rep.appendChild(simulation_report)
@@ -307,7 +307,6 @@ class RegressionTest:
         cmd = [ os.path.join(".", self.simname + ".local") ]
 	
         cmd.extend(self.args)
-        exit_code = 0
         with open(self.simname + "-RT.o", "wb") as f:
             try:
                 print ("Running test: " + cmd[0])
