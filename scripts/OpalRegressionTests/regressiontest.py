@@ -246,11 +246,12 @@ class RegressionTest:
 
         rep = Reporter()
         rep.appendReport("Run regression test " + self.simname + "\n")
-            
-        # run test
+        success = False    
+        # for the time being run_local is always true!
         if run_local:
-            exit_code = self.mpirun()
+            success = self.mpirun()
         else:
+            # :FIXME: this is broken!
             self.submitToSGE()
             self.waitUntilCompletion()
             
@@ -266,7 +267,7 @@ class RegressionTest:
             tests = [line.rstrip('\n') for line in infile]
 
         description = tests[0].lstrip("\"").rstrip("\"")
-        if exit_code != 0:
+        if not success:
             description += ". Test failed with exit code %d" % (exit_code)
         simulation_report.addAttribute("description", description)
 
