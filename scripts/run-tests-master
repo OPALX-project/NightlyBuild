@@ -34,7 +34,6 @@ module load gtest/1.8.1
 module load openmpi/3.1.4
 module load amrex/18.07_3d
 module load boost/1.70.0
-module load dks/1.1.2
 module load hdf5/1.10.5
 
 module load H5hut/2.0.0rc6
