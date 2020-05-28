@@ -58,6 +58,10 @@ class OpalRegressionTests:
             rep.dumpXML(results_file, "plots_" + date)
             self._publish_results()
 
+        rep.appendReport("\nSummary: {passed} / {total} tests passed \n".format(
+            passed = self.totalNrPassed,
+            total  = self.totalNrTests))
+
         rep.appendReport("\n==========================================================\n")
         rep.appendReport("Finished Regression Test on %s \n" %
                          datetime.datetime.today().isoformat())
