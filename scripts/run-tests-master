@@ -19,6 +19,7 @@ declare -r cmake_args=( "${cmake_args[@]/#/--cmake-args=}" )
 declare -a opal_args=()
 declare -r opal_args=( "${opal_args[@]/#/--opal-args=}" )
 
+PMODULES_VERSION=1.0.0rc6
 source /opt/psi/config/profile.bash
 module purge
 module use unstable
