@@ -316,7 +316,7 @@ class RegressionTest:
                 print ("Running test: " + cmd[0])
                 sys.stdout.flush ()
                 proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                out, err = proc.communicate(timeout=600)
+                out, err = proc.communicate(timeout=1200)
                 print (out.decode ('utf-8'))
                 print (err.decode ('utf-8'))
                 f.write (out)

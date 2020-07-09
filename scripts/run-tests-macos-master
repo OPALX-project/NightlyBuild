@@ -15,8 +15,9 @@
 usage() {
         echo "
 Usage:
-     ${basename $0} [--publish-dir=[DIR]] [REGRESSION_TESTS]
+     $()basename $0) [--publish-dir=[DIR]] [REGRESSION_TESTS]
 " 1>&2
+        exit 1
 }
 
 #-----------------------------------------------------------------------------
@@ -37,7 +38,8 @@ declare -r branch='master'
 # arguments passed to CMake
 #
 declare -a cmake_args=()
-cmake_args+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
+#cmake_args+=( "-DCMAKE_BUILD_TYPE=RELEASE" )
+cmake_args+=( "-DCMAKE_BUILD_TYPE=DEBUG" )
 cmake_args+=( "-DBUILD_OPAL_UNIT_TESTS=TRUE" )
 cmake_args+=( "-DENABLE_SAAMG_SOLVER=TRUE" )
 
@@ -49,30 +51,12 @@ declare -a opal_args=()
 #..............................................................................
 # arguments passed to OPAL unit tests
 declare unittests_args=()
-unittests_args+=( '--gtest_filter=-GreenWakeFunctionTest.TestApply' )
+unittests_args+=( '--gtest_filter=-GreenWakeFunctionTest.TestApply:Field.PeriodicBC' )
 
 #..............................................................................
 # modules to load/setup build environment
 #
-source /opt/psi/config/profile.bash
-module purge
-module use unstable
-module load cmake/3.14.0
-module load gnuplot/5.2.7
-module load Python/3.6.3
 
-module load gcc/7.4.0
-module load gsl/2.6
-module load OpenBLAS/0.3.7
-module load gtest/1.8.1
-
-module load openmpi/3.1.4
-module load amrex/18.07_3d
-module load boost/1.70.0
-module load hdf5/1.10.5
-
-module load H5hut/2.0.0rc6
-module load trilinos/12.12.1
 #
 # end of configuration
 #-----------------------------------------------------------------------------
@@ -89,7 +73,8 @@ module load trilinos/12.12.1
 # results of unit-tests:
 #	${publish_dir}/unitTests/${branch} 	results of regression-tests
 #
-declare -r publish_dir='/afs/psi.ch/project/amas/webhosting/opal'
+declare    publish_dir='/afs/psi.ch/project/amas/webhosting/opal'
+declare -a opts=()
 declare -a tests=()
 
 while (( $# > 0 )); do
@@ -101,7 +86,11 @@ while (( $# > 0 )); do
                                 publish_dir=$2; shift
                         fi
                         ;;
+                --force|-f|--reg-tests|--unit-tests )
+                        opts+=( "$1" )
+                        ;;
                 -* )
+                        echo "Invalid option -- $1\n"
                         usage
                         ;;
                 * )
@@ -117,28 +106,24 @@ done
 declare -r src_repo_url='https://gitlab.psi.ch/OPAL/src.git'
 declare -r tests_repo_url='https://gitlab.psi.ch/OPAL/regression-tests.git'
 
-<
 #..............................................................................
 # prepend option names to CMake und OPAL arguments
 #
-declare -r cmake_args=( "${cmake_args[@]/#/--cmake-args=}" )
-declare -r opal_args=( "${opal_args[@]/#/--opal-args=}" )
-declare -r unittests_args=( "${unittests_args[@]/#/--unit-tests-args}" )
+opts+=( "${cmake_args[@]/#/--cmake-args=}" )
+opts+=( "${opal_args[@]/#/--opal-args=}" )
+opts+=( "${unittests_args[@]/#/--unit-tests-args=}" )
 
 #..............................................................................
 # here we go ...
 #
 declare -r bindir=$(dirname "$0")
-bash -x "${bindir}/run-tests"				\
-     --branch=${branch}                                 \
-     "${cmake_args[@]}"					\
-     "${opal_args[@]}"					\
-     "${unittests_args[@]}"                             \
-     --src-repo-url="${src_repo_url}"			\
-     --tests-repo-url="${tests_repo_url}"		\
-     --repo-dir=${branch}				\
-     --publish-dir="${publish_dir}" 			\
-     "$@"
+"${bindir}/run-tests"				\
+        --branch=${branch}                      \
+        --src-repo-url="${src_repo_url}"	\
+        --tests-repo-url="${tests_repo_url}"	\
+        --publish-dir="${publish_dir}" 		\
+        "${opts[@]}"                            \
+        "${tests[@]}"
 
 # Local Variables:
 # mode:sh-mode
