@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+#
+# Compile OPAL and run unit- and regression tests.
+#
+# Usually this script is called via CRON or a CD/CI pipeline without any
+# argument.
+#
+# You can call this script from the command line anyway. The only excepted
+# option is '--publish-dir' to override the default publish directory. If
+# you use '--publish-dir=', publishing is disabled.
+#
+# If you don't want to run all tests, the name of the tests can be passed
+# as arguments.
 
 declare -ri	EC_ARG_ERROR=1
 declare -ri	EC_GIT_ERROR=10
@@ -12,6 +24,28 @@ PATH+=":/opt/local/bin:/usr/local/bin"
 # for Mac OS
 declare -rx	MACOSX_DEPLOYMENT_TARGET=10.12
 
+#
+# default branch for OPAL sources and regression tests
+declare		branch='master'
+declare         regtests_branch=''
+
+#..............................................................................
+# arguments passed to CMake
+#
+declare -a cmake_args=()
+
+#..............................................................................
+# arguments passed to OPAL
+declare -a opal_args=()
+
+#..............................................................................
+# arguments passed to OPAL unit tests
+declare unittests_args=()
+#
+# end of configuration
+#-----------------------------------------------------------------------------
+
+
 #-----------------------------------------------------------------------------
 # handle arguments
 #
@@ -21,37 +55,23 @@ declare		src_repo_url='https://gitlab.psi.ch/OPAL/src.git'
 declare		tests_repo_url='https://gitlab.psi.ch/OPAL/regression-tests.git'
 
 # run regression tests even if nothing has been changed
-declare		arg_force_run='no'
-
-# default branch for OPAL sources and regression tests
-declare		branch='master'
-
-# compile only
-declare		arg_compile_only='no'
+declare		opt_force='no'
 
 # absolute or relative directory where to publish the results
 # of the regression und unit tests. If empty, nothing will be
 # published.
 declare -x	publish_dir=''
 
-# arguments passed to CMake
-declare -a	cmake_args=()
+# run unit- and/or regression tests
+declare         opt_unittests='yes'
+declare         opt_regtests='yes'
 
-# arguments passed to OPAL
-declare -a	opal_args=()
-
-# arguments passed to the regression test runner
-declare	-a opts=()
+# configuration file
+declare opt_config_file="default-${branch}.conf"
 
 # tests to run, all if non passed as argument
-declare -a tests=()
+declare -a      tests=()
 
-# run unit- and/or regression tests
-declare opt_unittests='yes'
-declare opt_regtests='yes'
-
-# option/arguments passed to the unit-tests
-declare -a unittests_args=()
 while (( $# > 0 )); do
 	case $1 in
                 --branch|--branch=* )
@@ -61,8 +81,16 @@ while (( $# > 0 )); do
                                 branch="$2"; shift 1
                         fi
                         ;;
-		--compile-only )
-			arg_compile_only='yes'
+                --regtests-branch|--regtests-branch=* )
+                        if [[ $1 == *=* ]]; then
+                                regtests_branch="${1#*=}"
+                        else
+                                regtests_branch="$2"; shift 1
+                        fi
+                        ;;                         
+		--compile )
+                        opt_unittests='no'
+                        opt_regtests='no'
 			;;
 		--cmake-args|--cmake-args=* )
                         if [[ $1 == *=* ]]; then
@@ -71,6 +99,25 @@ while (( $# > 0 )); do
 			        cmake_args+=( "$2" ); shift 1
 		        fi
 		        ;;
+                --config|--config=* )
+                        if [[ $1 == *=* ]]; then
+		                opt_config_file="${1#*=}"
+                        else
+			        opt_config_file="$2"; shift 1
+                        fi
+                        if [[ ! -e "${opt_config_file}" ]]; then
+                                echo "ERROR: configuration file does not exist - ${opt_config_file}" \
+                                     1>&2
+                                exit 1
+                        fi
+                        source "${opt_config_file}"
+                        if (( $? != 0)); then
+                                echo "ERROR: cannot source configuration file - ${opt_config_file} " \
+                                     1>&2
+                                exit 1
+                        fi
+
+                        ;;
 		--opal-args|--opal-args=* )
                         if [[ $1 == *=* ]]; then
 			        opal_args+=( "${1#*=}" )
@@ -83,6 +130,9 @@ while (( $# > 0 )); do
 			        publish_dir="${1#*=}"
                         else
 		                publish_dir="$2"; shift 1
+                        fi
+                        if [[ -n ${publish_dir} ]]; then
+                                publish_dir=$(readlink -f "${publish_dir}")
                         fi
 		        ;;
 		--src-repo-url|--src-repo-url=* )
@@ -115,8 +165,8 @@ while (( $# > 0 )); do
                         fi
                         ;;
 		-f | --force )
-		        arg_force_run='yes'
-		                      ;;
+		        opt_force='yes'
+		        ;;
 		-* )
 		        echo "Unknown option: $1" 1>&2
 		        exit
@@ -127,6 +177,8 @@ while (( $# > 0 )); do
 	esac
 	shift 1
 done
+
+: ${regtests_branch:=${branch}}
 
 #.............................................................................
 # directory layout
@@ -194,27 +246,33 @@ _exit() {
         local -r r_results_xml="../regressionTests/${branch}/results_${today}.xml"
 
         # build string with result for unit-tests. This will be used as link-name.
-        local -r u_t="totl:${result['u_total']}"
-        local -r u_p="pass:${result['u_passed']}"
-        local -r u_f="fail:${result['u_failed']}"
-        local -r u_d="skip:${result['u_disabled']}"
-        local -r u_b="brkn:${result['u_broken']}"
-        local -r u_report="${u_t}; ${u_p}; ${u_f}; ${u_d}; ${u_b}"
-
+        if [[ "${result['u_total']}" == "-" ]]; then
+                local -r u_report='-'
+        else
+                local -r u_t="total:${result['u_total']}"
+                local -r u_p="passed:${result['u_passed']}"
+                local -r u_f="failed:${result['u_failed']}"
+                local -r u_d="disabled:${result['u_disabled']}"
+                local -r u_b="broken:${result['u_broken']}"
+                local -r u_report="[[${u_results_xml}][${u_t}; ${u_p}; ${u_f}; ${u_d}; ${u_b}]]"
+        fi
         # build string with result for regression-tests. This will be used as link-name.
-        local -r r_t="totl:${result['r_total']}"
-        local -r r_p="pass:${result['r_passed']}"
-        local -r r_f="fail:${result['r_failed']}"
-        local -r r_d="skip:${result['r_disabled']}"
-        local -r r_b="brkn:${result['r_broken']}"
-        local -r r_report="${r_t}, ${r_p}, ${r_f}, ${r_d}, ${r_b}"
-
+        if [[ "${result['r_total']}" == "-" ]]; then
+                local -r r_report='-'
+        else
+                local -r r_t="total:${result['r_total']}"
+                local -r r_p="passed:${result['r_passed']}"
+                local -r r_f="failed:${result['r_failed']}"
+                local -r r_d="disabled:${result['r_disabled']}"
+                local -r r_b="broken:${result['r_broken']}"
+                local -r r_report="[[${r_results_xml}][${r_t}, ${r_p}, ${r_f}, ${r_d}, ${r_b}]]"
+        fi
         # add new line to org table
         line=""
         line+="| ${today} "
         line+="| ${result['compile']} "
-        line+="| [[${u_results_xml}][${u_report}]] "
-        line+="| [[${r_results_xml}][${r_report}]] "
+        line+="| ${u_report} "
+        line+="| ${r_report} "
         line+="|"
         local -r tmpfile=$(mktemp "/tmp/awk.XXXXXX")
         awk "{print}; /^\|---/ {print \"${line}\"}" \
@@ -344,6 +402,9 @@ run_unit_test() {
 }
 
 run_regressiontests() {
+        local -r run_tests="${bindir}/run-reg-tests.py"
+
+        local opts=()
         if [[ -n "${publish_dir}" ]]; then
                 local -r publish_regtests_dir="${publish_dir}/regressionTests/${branch}"
 	        mkdir -p "${publish_regtests_dir}"
@@ -381,6 +442,7 @@ run_regressiontests() {
 }
 
 main() {
+	local -r opalbin="${builddir}/src/opal"
 
 	#.....................................................................
 	if [[ ! -d "${testsdir}" ]]; then
@@ -390,19 +452,9 @@ main() {
 		echo "Updating regression tests repository..."
 		update_repo "${testsbase}"
 	fi
-	if [[ $? == 0 ]] || [[ ${arg_force_run} == 'yes' ]] ; then
-		arg_force_run='yes'
+	if [[ $? == 0 ]] || [[ ${opt_force} == 'yes' ]] ; then
+		opt_force='yes'
 	fi
-
-	# read configuration and tests to run
-	if [[ ! -r "${confdir}/regression_tests.conf" ]]; then
-		echo "Configuration of regression tests cannot be read!" 1>&2
-		exit 2
-	fi
-
-	declare -r opalbin="${builddir}/src/opal"
-
-	declare -r run_tests="${bindir}/run-reg-tests.py"
 
 	#.....................................................................
 	if [[ ! -d "${srcdir}" ]]; then
@@ -415,31 +467,30 @@ main() {
 	if [[ $? == 0 ]] || [[ ! -e "${opalbin}" ]]; then
 		echo "Compiling OPAL ..."
 		compile_opal || exit 1
-		arg_force_run='yes'
+		opt_force='yes'
 	fi
-	if [[ "${arg_compile_only}" == 'yes' ]]; then
+	if [[ ${opt_unittests} == 'no' ]] && [[ ${opt_regtests} == 'no' ]]; then
 		echo "Compiling OPAL done ..."
-		exit 0
+		return 0
 	fi
 
-	if [[ ${arg_force_run} == 'yes' ]] ; then
-		if [[ -r "${keytab}" ]]; then
-			declare -rx KRB5CCNAME=$(mktemp /tmp/krb5cc_$(id -u)_XXXXXX)
-			/usr/bin/kinit -t "${keytab}" -k "${PRINCIPAL_NAME}"	|| exit 2
-			/usr/bin/aklog						|| exit 2
-		fi
-                if [[ ${opt_unittests} == 'yes' ]]; then
-		        echo "Running unit tests..."
-		        run_unit_test
-                fi
-                if [[ ${opt_regtests} == 'yes' ]]; then
-		        echo "Running regression tests..."
-		        run_regressiontests || return 1
-                fi
-		if [[ -r "${keytab}" ]]; then
-			/usr/bin/unlog
-			/usr/bin/kdestroy
-		fi
+	[[ ${opt_force} == 'no' ]] && return 0
+	if [[ -r "${keytab}" ]]; then
+		declare -rx KRB5CCNAME=$(mktemp /tmp/krb5cc_$(id -u)_XXXXXX)
+		/usr/bin/kinit -t "${keytab}" -k "${PRINCIPAL_NAME}"	|| exit 2
+		/usr/bin/aklog						|| exit 2
+	fi
+        if [[ ${opt_unittests} == 'yes' ]]; then
+		echo "Running unit tests..."
+		run_unit_test
+        fi
+        if [[ ${opt_regtests} == 'yes' ]]; then
+		echo "Running regression tests..."
+		run_regressiontests || return 1
+        fi
+	if [[ -r "${keytab}" ]]; then
+		/usr/bin/unlog
+		/usr/bin/kdestroy
 	fi
 }
 
