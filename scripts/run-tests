@@ -272,13 +272,13 @@ update_repo() {
 	else
 		cd "${_dir}"
 		git rev-parse --is-inside-work-tree 1>/dev/null 2>&1 || \
-			die ${EC_GIT_ERROR} "${_repodir}: is not a Git working directory!"
+			die ${EC_GIT_ERROR} "${_dir}: is not a Git working directory!"
 		git checkout "${_branch}"
 		git fetch
 
 		local -i num_changed_files=$(git diff --name-only  "origin/${_branch}"  | wc -l | awk '{print $1}')
 		if (( $num_changed_files == 0 )); then
-			echo "Working directory '${_repodir}' is up to date!"
+			echo "Working directory '${_dir}' is up to date!"
 			return 1
 		fi
 		git merge "origin/${_branch}"
