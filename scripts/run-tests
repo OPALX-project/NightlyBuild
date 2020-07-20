@@ -66,6 +66,13 @@ _exit() {
 	update_overview
 }
 
+die() {
+	(( $1 > 0 )) && exec 1>&2
+	echo -e "$2\n"
+	exit $1
+}
+
+#
 #-----------------------------------------------------------------------------
 # handle arguments
 #
@@ -122,15 +129,11 @@ while (( $# > 0 )); do
 			        opt_config_file="$2"; shift 1
                         fi
                         if [[ ! -e "${opt_config_file}" ]]; then
-                                echo "ERROR: configuration file does not exist - ${opt_config_file}" \
-                                     1>&2
-                                exit 1
+                                die 1 "ERROR: configuration file does not exist - ${opt_config_file}"
                         fi
                         source "${opt_config_file}"
                         if (( $? != 0)); then
-                                echo "ERROR: cannot source configuration file - ${opt_config_file} " \
-                                     1>&2
-                                exit 1
+                                die 1 "ERROR: cannot source configuration file - ${opt_config_file} "
                         fi
 
                         ;;
@@ -199,10 +202,8 @@ while (( $# > 0 )); do
 done
 
 : ${regtests_branch:=${branch}}
-if [[ ! -w "${publish_dir}" ]]; then
-        echo -e "Publish directory '${publish_dir}' is not writable!\nAborting...\n" 1>&2
-        exit 1
-fi
+
+mkdir -p "${publish_dir}"
 
 #.............................................................................
 # directory layout
@@ -241,13 +242,6 @@ result['r_broken']='-'
 
 declare -r today=$(date +%Y-%m-%d)
 
-die() {
-	(( $1 > 0 )) && exec 1>&2
-	echo "$2"
-	exit $1
-}
-
-#
 # checkout branch and pull changes
 #
 # $1	directory containing git work tree
@@ -291,9 +285,9 @@ update_repo() {
 compile_opal() {
 	echo "Compiling OPAL ..."
         result['compile']='failed'
-	cd "${basedir}"
+	cd "${builddir}/.."
 	rm -rf "${builddir}"
-	mkdir "${builddir}"
+	mkdir -p "${builddir}"
 	cd "${builddir}"
 	cmake "${cmake_args[@]}" "${srcdir}"
 	time make -j5
@@ -414,14 +408,15 @@ update_overview() {
         [[ -n ${publish_dir} ]] || return ${ec}
 	[[ "${result['compile']}${result['u_total']}${result['r_total']}" == '---' ]] && return ${ec}
 
+	mkdir -p "${publish_dir}/${branch}"
+
         # org file with the table we have to update
         local -r index_org="${publish_dir}/${branch}/index.org"
 
         # copy template to target directory if not exist
         if [[ ! -e "${index_org}" ]]; then
-	        cp -v \
-                   "${bindir}/html/index.org" \
-                   "${index_org}"
+	        sed "s/@BRANCH@/${branch}/" \
+                   "${bindir}/html/index.org" > "${index_org}"
         fi
 
         # links to generated XML pages used in the table
