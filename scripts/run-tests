@@ -228,8 +228,10 @@ trap _exit EXIT
 _exit() {
         local -i ec=$?
 
-        # nothing to do if no publication directory is defined
+        # nothing to do if publication directory is not defined or set
+	# to empty string.
         [[ -n ${publish_dir} ]] || return ${ec}
+	mkdir -p "${publish_dir}/${branch}"
 
         # org file with the table we have to update
         local -r index_org="${publish_dir}/${branch}/index.org"
@@ -279,11 +281,7 @@ _exit() {
             ${index_org} > "${tmpfile}"
         mv "${tmpfile}" "${index_org}"
 
-        emacs --batch --eval "
-                (with-current-buffer (find-file-noselect \"${index_org}\")
-                  (org-html-export-as-html)
-                  (write-file \"index.html\"))"
-
+	emacs "${index_org}" --batch -f org-html-export-to-html --kill
 }
 
 clone_repo() {
