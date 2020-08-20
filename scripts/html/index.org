@@ -19,11 +19,8 @@ table colgroup col:nth-child(4) {
 </style>
 @@
 
-* Tests
-|       Date | build | unit-tests                                                                                | regression-tests                                                                                |
-|------------+-------+-------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------|
-| 2020-07-09 | - | [[../unitTests/master/results_2020-07-09.xml][totl:-; pass:-; fail:-; skip:-; brkn:-]] | [[../regressionTests/master/results_2020-07-09.xml][totl:3, pass:3, fail:0, skip:-, brkn:0]] |
-| 2020-07-09 | - | [[../unitTests/master/results_2020-07-09.xml][t:-; p:-; f:-; d:-; b:-]] | [[../regressionTests/master/results_2020-07-09.xml][t:3, p:3, f:0, d:-, b:0]] |
-| 2020-07-09 | - | [[../unitTests/master/results_2020-07-09.xml][t:-, p:-; f:-, d:-, b:-]] | [[../regressionTests/master/results_2020-07-09.xml][t:3, p:3, f:0, d:-, b:0]] |
-
+* Regression-Tests branch '@BRANCH@'
+|       Date | build | unit-tests   | regression-tests   |
+|------------+-------+--------------+--------------------|
+|            |       |              |                    |
 
