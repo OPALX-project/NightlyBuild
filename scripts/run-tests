@@ -349,7 +349,7 @@ update_repo() {
 compile_opal() {
 	echo "Compiling OPAL ..."
         result['compile']='failed'
-	cd "${builddir}/.."
+	cd "${branchdir}"
 	rm -rf "${builddir}"
 	mkdir -p "${builddir}"
 	cd "${builddir}"
