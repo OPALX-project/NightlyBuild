@@ -72,6 +72,126 @@ die() {
 	exit $1
 }
 
+usage() {
+	echo "Usage:
+	$(basename "$0") [OPTIONS...] [TESTS...]
+
+Compile OPAL, run unit- and regression-tests. The regression-tests
+to run can be passed as arguments on the command line. If no tests
+are passed all tests are performed.
+
+On the first time this script is called, the following steps will be
+performed:
+
+1. clone OPAL repository
+2. compile OPAL, stop on error
+3. run unit-tests, stop on error
+4. clone regression-tests repository
+5. run regression-tests
+
+On further calls steps 2., 3. and 5. are only performed, if something
+changed:
+
+1. update OPAL repository
+2. compile OPAL only if changed, stop on error
+3. run unit-tests only if OPAL has been compiled, stop on error
+4. update regression-tests repository
+5. run regression-tests only if OPAL has been compiled or the some 
+    regression-tests has been changed.
+
+
+OPTIONS:
+===========
+--src-repo-url=URL
+	URL of the OPAL repository to use. This option must be set
+	if the tests should be run on a fork of the OPAL repository
+	https://gitlab.psi.ch/OPAL/src.
+
+--branch=BRANCH
+	Branch in the source repository to use.
+
+--tests-repo-url=URL
+	URL of the regression-tests repository. This option must 
+	be set, if the tests should in the fork of the tests in
+	https://gitlab.psi.ch/OPAL/regression-tests
+
+--regtests-branch=BRANCH
+	Branch in the regression-tests repository to use.
+
+--cmake-args=ARG
+	Argument/option passed to CMake. This option can be used
+	multiple times.
+
+--opal-args=ARG
+	Argument/option passed to OPAL. This option can be used
+	multiple times.
+	
+--unit-tests-args=ARGS
+	Argument/options passed to the unit-tests. This option can
+	for example be used to disable broken unit-tests.
+
+--publish-dir=DIR
+	Prefix of the publication directory. If not set
+	or empty, no HTML output will be created.
+
+--config=FILE
+	The options above can be defined in the configuration FILE.
+	See section CONFIG FILE for more details.
+	
+--compile
+	Compile OPAL even nothing changed and a binary exists.
+
+--unit-tests
+	Run unit-tests even OPAL has not been compiled.
+
+--reg-tests
+	Run regression-tests even OPAL has not been compiled and the
+	tests has not been changed.
+
+-f | --force
+	Force compiling OPAL and run unit- and regression-tests.
+
+-h | -? | --help
+	This help.
+
+
+CONFIG FILE
+===========
+src_repo_url=URL
+	See option --src-repo-url.
+
+branch=BRANCH
+	See option --branch.
+
+tests_repo_url=URL
+	See option --test-repo-url.
+
+regtests_branch=BRANCH
+	See option --regtests-branch.
+
+cmake_args
+	See option --cmake-args.
+	In the configuration file 'cmake_args' is a BASH array. The
+	recommended way to define CMake options in a configurarion 
+	file is
+
+	cmake_args+=( "ARG1" )
+	cmake_args+=( "ARG2" )
+        ...
+
+opal_args
+	See option --opal-args.
+	The syntax is the same as for 'cmake_args'
+
+unit_tests_args=ARGS
+	See option --unit-tests-args.
+
+publish_dir=DIR
+	See option --publish-dir
+" 1>&2
+	exit 1
+}
+
 #
 #-----------------------------------------------------------------------------
 # handle arguments
@@ -190,6 +310,9 @@ while (( $# > 0 )); do
                         do_regtests='yes'
                         do_unittests='yes'
 		        ;;
+		-h | -\? | --help )
+			usage
+			;;
 		-* )
 		        echo "Unknown option: $1" 1>&2
 		        exit
