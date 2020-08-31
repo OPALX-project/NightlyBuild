@@ -6,6 +6,6 @@ declare -r myname=$(basename "$0")
 declare -r branch="${myname#*.}"
 
 "${mydir}/run_with_token" "${mydir}/run-tests" \
-	--config config/psi-${branch}.conf \
+	--config "${mydir}/config/psi-${branch}.conf" \
 	--publish-dir /afs/psi.ch/project/amas/webhosting/opal \
 	> "${HOME}/$(date "+%Y-%m-%d_%H:%M")_results-${branch}"   2>&1 || :
