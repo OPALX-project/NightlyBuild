@@ -1,0 +1,26 @@
+#+TITLE: OPAL
+#+AUTHOR: OPAL developers
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
+
+@@html:
+<style>
+table colgroup col:nth-child(1) {
+    width: 17%;
+}
+table colgroup col:nth-child(2) {
+    width: 5%;
+}
+table colgroup col:nth-child(3) {
+    width: 39%;
+}
+table colgroup col:nth-child(4) {
+    width: 39%;
+}
+</style>
+@@
+
+* Regression-Tests branch '@BRANCH@'
+|       Date | build | unit-tests   | regression-tests   |
+|------------+-------+--------------+--------------------|
+|            |       |              |                    |
+
