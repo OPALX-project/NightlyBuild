@@ -83,7 +83,7 @@ def main(argv):
         print ("%s - regression tests base directory does not exist!" %
                (base_dir))
         sys.exit(1)
-    
+
     # set target directory for results
     publish_dir = None
     if args.publish_dir:
@@ -119,7 +119,7 @@ def main(argv):
                 sys.exit(1)
         tests = sorted(args.tests)
 
-    print ("Running the follwing regression tests:")
+    print ("Running the following regression tests:")
     for test in tests:
         print ("    {}".format(test))
 
