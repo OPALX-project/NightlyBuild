@@ -74,18 +74,11 @@ class OpalRegressionTests:
             return subprocess.getoutput("git rev-parse HEAD")
 
     def _getRevisionOpal(self):
-        fh = open("testRevision.in","w")
-        fh.write("WHAT, GITREVISION;\nQUIT;")
-        fh.close()
         exe = os.getenv("OPAL_EXE_PATH") + "/opal"
-        output = subprocess.getoutput(exe + " testRevision.in 1>/dev/null")
-        os.remove("testRevision.in")
-
-        revRe = re.search('GITREVISION="(.{40})";$',output)
-        if (revRe != None):
-            return (revRe.group(1))
+        if sys.version_info < (3,0):
+            return commands.getoutput(exe + " --git-revision")
         else:
-            return ""
+            return subprocess.getoutput(exe + " --git-revision")
 
     def _addDate(self, rep):
         date_report = TempXMLElement("Date")
@@ -167,7 +160,7 @@ class RegressionTest:
         self.totalNrTests = 0
         self.totalNrPassed = 0
         self.queue = ""
-        self.date = datetime.date.today().isoformat() 
+        self.date = datetime.date.today().isoformat()
 
     """
     Check MD5 sum. File content must be compatible with md5sum(1) output.
@@ -240,7 +233,7 @@ class RegressionTest:
         if os.path.isfile (self.simname + ".out"):
             os.remove (self.simname + ".out")
 
-        
+
     def run(self, run_local = True, q = None):
 
         os.chdir(self.dirname)
@@ -250,7 +243,7 @@ class RegressionTest:
 
         rep = Reporter()
         rep.appendReport("Run regression test " + self.simname + "\n")
-        success = False    
+        success = False
         # for the time being run_local is always true!
         if run_local:
             success = self.mpirun()
@@ -258,7 +251,7 @@ class RegressionTest:
             # :FIXME: this is broken!
             self.submitToSGE()
             self.waitUntilCompletion()
-            
+
         # copy to out file
         if os.path.isfile (self.simname + "-RT.o"):
             shutil.copy (self.simname + "-RT.o", self.simname + ".out")
@@ -309,7 +302,7 @@ class RegressionTest:
             rep.appendReport ("Error: "+self.simname+".local file could not be executed\n")
 
         cmd = [ os.path.join(".", self.simname + ".local") ]
-	
+
         cmd.extend(self.args)
         with open(self.simname + "-RT.o", "wb") as f:
             try:
@@ -380,4 +373,3 @@ class RegressionTest:
             return False
 
         return rtest.checkResult(root)
-
