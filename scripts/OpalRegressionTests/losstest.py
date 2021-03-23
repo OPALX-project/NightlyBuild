@@ -160,7 +160,7 @@ class LossTest:
             return (0, 0, 'parse_error')
 
     variable_list = {"x":0, "y":1, "z":2, "px":3, "py":4, "pz":5,
-                     "track_id":6, "turn":7, "time":8}
+                     "particle_id":6, "turn":7, "bunch_num": 8, "time":9}
     mode_list = {"last":testLast, "all":testAll, "error":testError,
                      "avg":testMean}
 
