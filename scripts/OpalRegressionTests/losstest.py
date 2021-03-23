@@ -159,8 +159,8 @@ class LossTest:
         except Exception:
             return (0, 0, 'parse_error')
 
-    variable_list = {"x":1, "y":2, "z":3, "px":4, "py":5, "pz":6,
-                     "track_id":7, "turn":8, "time":9}
+    variable_list = {"x":0, "y":1, "z":2, "px":3, "py":4, "pz":5,
+                     "track_id":6, "turn":7, "time":8}
     mode_list = {"last":testLast, "all":testAll, "error":testError,
                      "avg":testMean}
 
