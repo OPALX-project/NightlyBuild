@@ -18,7 +18,7 @@ import OpalRegressionTests.lbaltest as lbaltest
 import OpalRegressionTests.losstest as losstest
 
 class OpalRegressionTests:
-    def __init__(self, base_dir, tests, opal_args, publish_dir = None):
+    def __init__(self, base_dir, tests, opal_args, publish_dir = None, timestamp = None):
         self.base_dir = base_dir
         self.tests = tests
         self.opal_args = opal_args
@@ -27,17 +27,20 @@ class OpalRegressionTests:
         self.totalNrTests = 0
         self.rundir = sys.path[0]
         self.today = datetime.datetime.today()
+        self.timestamp = timestamp
 
     def run(self):
         rep = Reporter()
         rep.appendReport("Start Regression Test on %s \n" % self.today.isoformat())
         rep.appendReport("==========================================================\n")
 
+        if not self.timestamp:
+            self.timestamp = self.today.strftime("%Y-%m-%d")
+
         # clean old results if exist
         plot_dir = None
-        date = self.today.strftime("%Y-%m-%d")
         if self.publish_dir:
-            plot_dir = os.path.join(self.publish_dir, "plots_" + date)
+            plot_dir = os.path.join(self.publish_dir, "plots_" + self.timestamp)
             if os.path.isdir(plot_dir):
                 shutil.rmtree(plot_dir)
 
@@ -52,10 +55,10 @@ class OpalRegressionTests:
         self._addRevisionStrings(rep)
 
         if self.publish_dir:
-            results_file = os.path.join(self.publish_dir, "results_" + date + ".xml")
+            results_file = os.path.join(self.publish_dir, "results_" + self.timestamp + ".xml")
             if os.path.isfile(results_file):
                 os.remove (results_file)
-            rep.dumpXML(results_file, "plots_" + date)
+            rep.dumpXML(results_file, "plots_" + self.timestamp)
             self._publish_results()
 
         rep.appendReport("\nSummary: {passed} / {total} tests passed \n".format(
@@ -113,7 +116,7 @@ class OpalRegressionTests:
     def _publish_results (self):
         rep = Reporter ()
 
-        webfilename = "results_" + self.today.strftime("%Y-%m-%d") + ".xml"
+        webfilename = "results_" + self.timestamp + ".xml"
 
         index_fname = os.path.join (self.publish_dir, "index.html")
         if not os.path.exists(index_fname):
@@ -126,9 +129,10 @@ class OpalRegressionTests:
         for line in range(len(indexhtml)):
             if "insert here" in indexhtml[line]:
                 m = re.search(webfilename, indexhtml[line + 1])
-                fmt="<a href=\"%s\">%s.%s.%s</a> [passed:%d | broken:%d | failed:%d | total:%d] <br/>\n"
+                fmt="<a href=\"%s\">%04d-%02d-%02d %02d:%02d</a> [passed:%d | broken:%d | failed:%d | total:%d] <br/>\n"
                 text = fmt % (webfilename,
-                              self.today.day, self.today.month, self.today.year,
+                              self.today.year, self.today.month, self.today.day,
+                              self.today.hour, self.today.minute,
                               self.totalNrPassed, rep.NrBroken(), rep.NrFailed(),
                               self.totalNrTests)
 
@@ -302,7 +306,6 @@ class RegressionTest:
             rep.appendReport ("Error: "+self.simname+".local file could not be executed\n")
 
         cmd = [ os.path.join(".", self.simname + ".local") ]
-
         cmd.extend(self.args)
         with open(self.simname + "-RT.o", "wb") as f:
             try:

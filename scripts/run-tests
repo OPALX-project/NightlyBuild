@@ -47,6 +47,10 @@ declare unittests_args=()
 # end of configuration
 #-----------------------------------------------------------------------------
 
+declare -r today=$(date +%Y-%m-%d)
+declare -r time=$(date +%H-%M)
+declare -r timestamp="${today}_${time}"
+
 declare aborting='yes'
 
 trap _signal_handler SIGINT SIGTERM
@@ -264,6 +268,14 @@ while (( $# > 0 )); do
 			        opal_args+=( "$2" ); shift 1
                         fi
 			;;
+		--output-dir|--output-dir=* )
+                        if [[ $1 == *=* ]]; then
+			        ofile="${1#*=}/${timestamp}.txt"
+                        else
+			        ofile="$2/${timestamp}.txt"; shift 1
+                        fi
+			exec 1> "${ofile}" 2>&1
+			;;
 		--publish-dir|--publish-dir=* )
                         if [[ $1 == *=* ]]; then
 			        publish_dir="${1#*=}"
@@ -363,69 +375,6 @@ result['r_failed']='-'
 result['r_disabled']='-'
 result['r_broken']='-'
 
-declare -r today=$(date +%Y-%m-%d)
-
-trap _exit EXIT
-
-_exit() {
-        local -i ec=$?
-
-        # nothing to do if publication directory is not defined or set
-	# to empty string.
-        [[ -n ${publish_dir} ]] || return ${ec}
-	mkdir -p "${publish_dir}/${branch}"
-
-        # org file with the table we have to update
-        local -r index_org="${publish_dir}/${branch}/index.org"
-
-        # copy template to target directory if not exist
-        if [[ ! -e "${index_org}" ]]; then
-	        cp -v \
-                   "${bindir}/html/index.org" \
-                   "${index_org}"
-        fi
-
-        # links to generated XML pages used in the table
-        local -r u_results_xml="../unitTests/${branch}/results_${today}.xml"
-        local -r r_results_xml="../regressionTests/${branch}/results_${today}.xml"
-
-        # build string with result for unit-tests. This will be used as link-name.
-        if [[ "${result['u_total']}" == "-" ]]; then
-                local -r u_report='-'
-        else
-                local -r u_t="total:${result['u_total']}"
-                local -r u_p="passed:${result['u_passed']}"
-                local -r u_f="failed:${result['u_failed']}"
-                local -r u_d="disabled:${result['u_disabled']}"
-                local -r u_b="broken:${result['u_broken']}"
-                local -r u_report="[[${u_results_xml}][${u_t}; ${u_p}; ${u_f}; ${u_d}; ${u_b}]]"
-        fi
-        # build string with result for regression-tests. This will be used as link-name.
-        if [[ "${result['r_total']}" == "-" ]]; then
-                local -r r_report='-'
-        else
-                local -r r_t="total:${result['r_total']}"
-                local -r r_p="passed:${result['r_passed']}"
-                local -r r_f="failed:${result['r_failed']}"
-                local -r r_d="disabled:${result['r_disabled']}"
-                local -r r_b="broken:${result['r_broken']}"
-                local -r r_report="[[${r_results_xml}][${r_t}, ${r_p}, ${r_f}, ${r_d}, ${r_b}]]"
-        fi
-        # add new line to org table
-        line=""
-        line+="| ${today} "
-        line+="| ${result['compile']} "
-        line+="| ${u_report} "
-        line+="| ${r_report} "
-        line+="|"
-        local -r tmpfile=$(mktemp "/tmp/awk.XXXXXX")
-        awk "{print}; /^\|---/ {print \"${line}\"}" \
-            ${index_org} > "${tmpfile}"
-        mv "${tmpfile}" "${index_org}"
-
-	emacs "${index_org}" --batch -f org-html-export-to-html --kill
-}
-
 clone_repo() {
 	local -r repo_url="$1"
 	local -r dir="$2"
@@ -498,7 +447,7 @@ run_unit_test() {
         if [[ -n "${publish_dir}" ]]; then
                 local -r publish_unittests_dirs="${publish_dir}/unitTests/${branch}"
                 mkdir -p "${publish_unittests_dirs}"
-                local output_file="${publish_unittests_dirs}/results_${today}.xml"
+                local output_file="${publish_unittests_dirs}/results_${timestamp}.xml"
                 unittests_args+=( "--gtest_output=xml:${output_file}" )
         fi
 
@@ -530,7 +479,7 @@ run_unit_test() {
         result['u_disabled']=${disabled}
         result['u_broken']=${errors}
 
-        line="<a href=\"${output_file##*/}\">${today}</a> ${test_overview}"
+        line="<a href=\"${output_file##*/}\">${timestamp}</a> ${test_overview}"
 
         if [[ ! -e "${publish_unittests_dirs}/index.html" ]]; then
 	        echo "<head>
@@ -564,7 +513,7 @@ run_regressiontests() {
 	fi
 	opts+=("--opal-exe-path=${builddir}/src")
 	opts+=("--base-dir=${testsdir}")
-        
+        opts+=("--timestamp=${timestamp}")
 	"${run_tests}" "${opts[@]}" "--" "${tests[@]}"
         local -i ec=$?
 
@@ -573,11 +522,11 @@ run_regressiontests() {
         # get results from HTML file created/updated by regression-tests 
         local index_html="${publish_regtests_dir}/index.html"
         read passed broken failed total < <(
-                awk "/${today}/ {
-                     split(\$3, p, \":\");
-                     split(\$5, b, \":\");
-                     split(\$7, f, \":\");
-                     split(\$9, t,  \":\");
+                awk "/${timestamp}/ {
+                     split(\$4, p, \":\");
+                     split(\$6, b, \":\");
+                     split(\$8, f, \":\");
+                     split(\$10, t,  \":\");
                      printf \"%s %s %s %s\n\", p[2], b[2], f[2], t[2]; exit}" \
                              < ${index_html})
         result['r_total']=${total/\]}
@@ -607,8 +556,8 @@ update_overview() {
         fi
 
         # links to generated XML pages used in the table
-        local -r u_results_xml="../unitTests/${branch}/results_${today}.xml"
-        local -r r_results_xml="../regressionTests/${branch}/results_${today}.xml"
+        local -r u_results_xml="../unitTests/${branch}/results_${timestamp}.xml"
+        local -r r_results_xml="../regressionTests/${branch}/results_${timestamp}.xml"
 
         # build string with result for unit-tests. This will be used as link-name.
         if [[ "${result['u_total']}" == "-" ]]; then
@@ -634,7 +583,7 @@ update_overview() {
         fi
         # add new line to org table
         line=""
-        line+="| ${today} "
+        line+="| ${today} ${time/-/:}"
         line+="| ${result['compile']} "
         line+="| ${u_report} "
         line+="| ${r_report} "
@@ -644,10 +593,11 @@ update_overview() {
             ${index_org} > "${tmpfile}"
         mv "${tmpfile}" "${index_org}"
 
-        emacs --batch --eval "
-                (with-current-buffer (find-file-noselect \"${index_org}\")
-                  (org-html-export-as-html)
-                  (write-file \"${index_org%.*}.html\"))"
+	emacs "${index_org}" --batch -f org-html-export-to-html --kill
+        #emacs --batch --eval "
+        #       (with-current-buffer (find-file-noselect \"${index_org}\")
+        #          (org-html-export-as-html)
+        #          (write-file \"${index_org%.*}.html\"))"
 }
 
 #
