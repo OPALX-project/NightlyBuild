@@ -68,6 +68,10 @@ def main(argv):
                         dest='opal_args', nargs='*', action='append',
                         help='arguments passed to OPAL',
 			default=[])
+    parser.add_argument('--timestamp',
+                        dest='timestamp', type=str,
+                        help='timestamp to use in file names',
+			default=[])
 
     args = parser.parse_args()
 
@@ -123,7 +127,7 @@ def main(argv):
     for test in tests:
         print ("    {}".format(test))
 
-    rt = OpalRegressionTests.OpalRegressionTests(base_dir, tests, args.opal_args, publish_dir)
+    rt = OpalRegressionTests.OpalRegressionTests(base_dir, tests, args.opal_args, publish_dir, args.timestamp)
     rt.run()
 
 if __name__ == "__main__":
