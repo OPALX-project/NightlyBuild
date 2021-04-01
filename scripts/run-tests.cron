@@ -4,9 +4,9 @@ declare -r mydir=$(cd $(dirname $0) && pwd)
 declare -r myname=$(basename "$0")
 
 declare -r branch="${myname#*.}"
-
+declare -r publish_dir='/afs/psi.ch/project/amas/webhosting/opal'
+ 
 "${mydir}/run_with_token" "${mydir}/run-tests" \
 	--config "${mydir}/config/psi-${branch}.conf" \
-	--publish-dir /afs/psi.ch/project/amas/webhosting/opal \
-	2>&1 || :
-	#--output-dir /afs/psi.ch/project/amas/webhosting/opal/master/output 2>&1 || :
+	--publish-dir "${publish_dir}" \
+	--output-dir "${publish_dir}/${branch}/output" 2>&1 || :
