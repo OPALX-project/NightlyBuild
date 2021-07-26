@@ -451,8 +451,8 @@ run_unit_test() {
                 unittests_args+=( "--gtest_output=xml:${output_file}" )
         fi
 
-        ${tests_bin} "${unittests_args[@]}"
-        local -i ec=$?
+        local -i ec=0
+        ${tests_bin} "${unittests_args[@]}" || ec=$?
 
         [[ -n ${publish_dir} ]] || return ${ec}
 
@@ -640,7 +640,7 @@ main() {
 		do_regtests='yes'
 	fi
         if [[ ${do_unittests} == 'yes' ]]; then
-		run_unit_test
+		run_unit_test || :
         fi
  
 	echo "Updating regression tests repository..."
