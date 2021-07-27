@@ -3,10 +3,16 @@
 import sys
 import os
 import datetime
-import tools
-import stattest
-from reporter import Reporter
-from reporter import TempXMLElement
+#import tools
+#import OpalRegressionTests
+
+from OpalRegressionTests.reporter import Reporter
+from OpalRegressionTests.reporter import TempXMLElement
+
+import OpalRegressionTests.stattest as stattest
+import OpalRegressionTests.outtest as outtest
+import OpalRegressionTests.lbaltest as lbaltest
+import OpalRegressionTests.losstest as losstest
 
 class RegressionTest:
     def __init__(self, name):
@@ -67,7 +73,7 @@ class RegressionTest:
             rep.appendReport("Error: unknown test type %s\n" % nameparams[0])
             return False
 
-        return rtest.performTest(root)
+        return rtest.checkResult(root)
 
 if __name__ == "__main__":
     name = sys.argv[1]
