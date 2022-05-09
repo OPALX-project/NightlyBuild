@@ -60,14 +60,17 @@ class RegressionTest:
         var = nameparams[1]
         params = str.split(nameparams[2].lstrip(), " ")
         rtest = 0
+        file_name, file_extension = os.path.splitext(test.split()[0])
         if "stat" in test:
             rtest = stattest.StatTest(var, params[0], float(params[1]), self.dir, self.name)
         elif "out" in test:
             rtest = outtest.OutTest(var, params[0], float(params[1]), self.dir, self.name)
         elif "lbal" in test:
             rtest = lbaltest.LbalTest(var, params[0], float(params[1]), self.dir, self.name)
-        elif test.split()[0][-4:] == "loss":
+        elif file_extension == ".loss":
             rtest = losstest.LossTest(var, params[0], float(params[1]), test.split()[0])
+        elif file_extension == ".smb":
+            rtest = stattest.StatTest(var, params[0], float(params[1]), file_name, file_extension)
         else:
             rep = Reporter()
             rep.appendReport("Error: unknown test type %s\n" % nameparams[0])

@@ -166,12 +166,12 @@ class RegressionTest:
         self.queue = ""
         self.date = datetime.date.today().isoformat()
 
-    """
-    Check MD5 sum. File content must be compatible with md5sum(1) output.
-
-    Note: Use this function for small files only!
-    """
     def _check_md5sum (self, fname_md5sum):
+        """
+        Check MD5 sum. File content must be compatible with md5sum(1) output.
+
+        Note: Use this function for small files only!
+        """
         with open (fname_md5sum, 'r') as f:
             first_line = f.readline ()
             f.close()
@@ -180,12 +180,13 @@ class RegressionTest:
         ok = md5sum == hashlib.md5(open(fname, 'rb').read()).hexdigest()
         return ok
 
-    """
-    This method checks if all files in the reference directory are present
-    and if their md5 checksums still concure with the ones stored after
-    the simulation run
-    """
+
     def _validateReferenceFiles(self):
+        """
+        This method checks if all files in the reference directory are present
+        and if their md5 checksums still concure with the ones stored after
+        the simulation run
+        """
         rep = Reporter()
         os.chdir(self.dirname)
         os.chdir("reference")
@@ -203,22 +204,30 @@ class RegressionTest:
                 rep_string = "\t Reference file %s is missing!\n % (fname_md5)"
                 allok = False
                 continue
-            chksum_ok = self._check_md5sum(fname_md5)
-            rep.appendReport("\t Checksum for reference %s %s \n" % (
-                fname, ('OK' if chksum_ok else 'FAILED')))
+            chksum_ok =  self._reportReferenceFiles(fname_md5)
             allok = allok and chksum_ok
 
         for loss_file in glob.glob("*.loss"):
-            loss_ok = self._check_md5sum (loss_file + '.md5')
-            allok = allok and loss_ok
-            rep.appendReport("\t Checksum for reference %s %s\n" % (
-                loss_file, ('OK' if loss_ok else 'FAILED')))
+            chksum_ok = self._reportReferenceFiles(loss_file + '.md5')
+            allok = allok and chksum_ok
+
+        for smb_file in glob.glob("*.smb"):            
+            chksum_ok = self._reportReferenceFiles(smb_file + '.md5')
+            allok = allok and chksum_ok
+
         return allok
 
-    """
-    cleanup all OLD job files if there are any
-    """
+    def _reportReferenceFiles (self, fname):
+        rep = Reporter()
+        chksum_ok = self._check_md5sum(fname)
+        rep.appendReport("\t Checksum for reference %s %s \n" % (
+            fname, ('OK' if chksum_ok else 'FAILED')))
+        return chksum_ok
+
     def _cleanup(self):
+        """
+        cleanup all OLD job files if there are any
+        """
         for p in pathlib.Path(".").glob(self.simname + "-RT.*"):
             p.unlink()
 
@@ -226,6 +235,9 @@ class RegressionTest:
             p.unlink()
 
         for p in pathlib.Path(".").glob("*.loss"):
+            p.unlink()
+
+        for p in pathlib.Path(".").glob("*.smb"):
             p.unlink()
 
         if os.path.isfile(self.simname + ".stat"):
@@ -237,9 +249,7 @@ class RegressionTest:
         if os.path.isfile (self.simname + ".out"):
             os.remove (self.simname + ".out")
 
-
     def run(self, run_local = True, q = None):
-
         os.chdir(self.dirname)
         self.queue = q
         self._cleanup()
@@ -346,14 +356,15 @@ class RegressionTest:
             time.sleep(30)
             qstatout = subprocess.getoutput("qstat -u " + username + " | grep \"" + self.jobnr + "\"")
 
-
-    """
-    handler for comparison of various output files with reference files
-
-    Note that we do something different for loss tests as the file name in
-    general is not <simname>.loss, rather it is <element_name>.loss
-    """
     def checkResult(self, test, root):
+        """
+        handler for comparison of various output files with reference files
+
+        Note that we do something different for loss tests as the file name in
+        general is not <simname>.loss, rather it is <element_name>.loss
+
+        For smb tests the file name is <simname>-bunch-idBunch.smb
+        """
         nameparams = str.split(test,"\"")
         var = nameparams[1]
         params = str.split(nameparams[2].lstrip(), " ")
@@ -367,12 +378,17 @@ class RegressionTest:
         elif "lbal" in test:
             rtest = lbaltest.LbalTest(var, params[0], float(params[1]),
                                       self.dirname, self.simname)
-        elif test.split()[0][-4:] == "loss":
-            rtest = losstest.LossTest(var, params[0], float(params[1]),
-                                      self.dirname, test.split()[0])
         else:
-            rep = Reporter()
-            rep.appendReport("Error: unknown test type %s\n" % nameparams[0])
-            return False
+            file_name, file_extension = os.path.splitext(test.split()[0])
+            if file_extension == ".loss":
+                rtest = losstest.LossTest(var, params[0], float(params[1]),
+                                          self.dirname, test.split()[0])
+            elif file_extension == ".smb":
+                rtest = stattest.StatTest(var, params[0], float(params[1]),
+                                          self.dirname, file_name, file_extension)
+            else:
+                rep = Reporter()
+                rep.appendReport("Error: unknown test type %s\n" % nameparams[0])
+                return False
 
         return rtest.checkResult(root)
