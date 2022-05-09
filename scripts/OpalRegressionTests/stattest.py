@@ -8,15 +8,27 @@ from OpalRegressionTests.reporter import Reporter
 from OpalRegressionTests.reporter import TempXMLElement
 
 class StatTest:
+    """
+    A regression test based on ASCII SDDS format for beam statistics
+    type files. There are two file extensions supported: ".stat" files
+    of global statistical beam parameters and ".smb" files of single
+    bunch statistics in multibunch simulations.
+    Member data:
+        - var: the variable to be checked.
+        - quant: string that defines how the variable should be handled.
+          Options are "last" and "avg"
+        - eps: floating point tolerance (absolute)
+        - name: name of the smb file to be checked
+    """
 
-    def __init__(self, var, quant, eps, prefix, name):
+    def __init__(self, var, quant, eps, prefix, name, suffix = ".stat"):
         self.var = var
         self.quant = quant
         self.eps = eps
         self.prefix = prefix
         self.name = name
-        self.stat_fname = os.path.join(self.prefix, self.name) + ".stat"
-        self.reference_fname = os.path.join(self.prefix, "reference", self.name) + ".stat"
+        self.fname = os.path.join(self.prefix, self.name) + suffix
+        self.reference_fname = os.path.join(self.prefix, "reference", self.name) + suffix
         
     def _report_broken_test(self, root):
         passed_report = TempXMLElement("state")
@@ -32,11 +44,10 @@ class StatTest:
         root.appendChild(delta_report)
         return False
         
-    """
-    method performs a test for a stat-file variable "var"
-    """
     def checkResult(self, root):
-
+        """
+        method performs a test for a stat-file variable "var"
+        """
         rep = Reporter()
         val = 0
 
@@ -44,12 +55,12 @@ class StatTest:
         root.addAttribute("var", self.var)
         root.addAttribute("mode", self.quant)
         
-        if not os.path.isfile(self.stat_fname):
+        if not os.path.isfile(self.fname):
             rep.appendReport("ERROR: no statfile %s \n" % self.name)
             rep.appendReport("\t Test %s(%s) broken \n" % (self.var,self.quant))
             return self._report_broken_test(root)
-
-        self.opalRevision, self.path_length, self.values = self._readStatVariable(self.stat_fname)
+            
+        self.opalRevision, self.path_length, self.values = self._readStatVariable(self.fname)
         self.refRevision, self.ref_path_length, self.ref_values = self._readStatVariable(self.reference_fname)
 
         if self.values == [] or self.ref_values == []:
@@ -114,11 +125,10 @@ class StatTest:
 
         return passed
 
-
-    """
-    parse header of .stat file (ASCII SDDS format)
-    """
     def _readStatHeader(self, statfile):
+        """
+        parse header of .stat file (ASCII SDDS format)
+        """
         header = {'number of lines': 0,
                   'columns': {},
                   'parameters': {}
@@ -177,10 +187,10 @@ class StatTest:
 
         return header
 
-    """
-    method parses a stat-file and returns found variables
-    """
     def _readStatVariable(self, fname):
+        """
+        method parses a stat-file and returns found variables
+        """
         header = self._readStatHeader(fname)
         readLines = header['number of lines']
         revLine = header['parameters']['revision']['row']
@@ -240,7 +250,7 @@ class StatTest:
 
     def _plot(self):
         stat_plot_file = os.path.join(self.prefix, 'data1.dat')
-        opalRevision = self._read_stat_file(self.stat_fname, stat_plot_file)
+        opalRevision = self._read_stat_file(self.fname, stat_plot_file)
         if not opalRevision:
             return False
         reference_plot_file = os.path.join(self.prefix, 'data2.dat')
@@ -272,4 +282,3 @@ class StatTest:
         os.remove(reference_plot_file)
             
         return output_fname
-
