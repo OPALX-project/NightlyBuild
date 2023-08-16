@@ -270,10 +270,12 @@ while (( $# > 0 )); do
 			;;
 		--output-dir|--output-dir=* )
                         if [[ $1 == *=* ]]; then
-			        ofile="${1#*=}/${timestamp}.txt"
+				output_dir="${1#*=}"
                         else
-			        ofile="$2/${timestamp}.txt"; shift 1
+			        output_dir="$2"; shift 1
                         fi
+			mkdir -p "${output_dir}"
+			ofile="${output_dir}/${timestamp}.txt"
 			exec 1> "${ofile}" 2>&1
 			;;
 		--publish-dir|--publish-dir=* )

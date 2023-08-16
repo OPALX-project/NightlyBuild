@@ -9,8 +9,6 @@ declare -r config_file="${mydir}/config/psi-${branch}.conf"
 declare -r publish_dir='/afs/psi.ch/project/amas/webhosting/opal'
 declare -r output_dir="${publish_dir}/${branch}/output"
 
-mkdir -p "${output_dir}" || exit $?
- 
 "${mydir}/run_with_token" "${mydir}/run_tests" \
 	--config "${config_file}" \
 	--publish-dir "${publish_dir}" \
