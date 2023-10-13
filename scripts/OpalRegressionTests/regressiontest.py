@@ -217,6 +217,27 @@ class RegressionTest:
 
         return allok
 
+
+    def _validateOutputFiles(self):
+        """
+        This method checks if all output files needed to compare with
+        reference files files in the reference directory are present
+        """
+        rep = Reporter()
+        allok = True
+
+        for suffix in ['.stat','.out','.lbal','.loss','.smb']:
+            outFiles = [x for x in os.listdir(".") if x.endswith(suffix)]
+            refFiles = [x for x in os.listdir("reference") if x.endswith(suffix)]
+            if bool(refFiles):
+                if not bool(outFiles):
+                    allok = False
+                    rep.appendReport("\t ERROR: Reference output file %s %s \n" % (
+                        refFiles, 'FAILED'))
+
+        return allok
+
+
     def _reportReferenceFiles (self, fname):
         rep = Reporter()
         chksum_ok = self._check_md5sum(fname)
@@ -269,6 +290,12 @@ class RegressionTest:
         # copy to out file
         if os.path.isfile (self.simname + "-RT.o"):
             shutil.copy (self.simname + "-RT.o", self.simname + ".out")
+
+        success = self._validateOutputFiles()
+        if success:
+            rep.appendReport("Reference output files OK\n")
+        else:
+            return False
 
         simulation_report = TempXMLElement("Simulation")
         simulation_report.addAttribute("name", self.simname)
