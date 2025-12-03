@@ -53,7 +53,9 @@ declare -r timestamp="${today}_${time}"
 
 declare aborting='yes'
 
+# SITINT or SIGTERM event calls _signal_handler
 trap _signal_handler SIGINT SIGTERM
+# exits the script with the errorcode 
 _signal_handler() {
 	local ec=$?
 	echo "Aborting ..."
@@ -61,7 +63,9 @@ _signal_handler() {
 	exit ${ec}
 }
 
+# EXIT event calls _exit
 trap _exit EXIT
+# if in aborting state exit the script with the errorcode 
 _exit() {
         local -i ec=$?
 	if [[ ${aborting} == 'yes' ]]; then
@@ -70,6 +74,8 @@ _exit() {
 	update_overview
 }
 
+# if errorcode ($1) > 0, then redirect output to 
+# stderr and exit the script with the errorcode
 die() {
 	(( $1 > 0 )) && exec 1>&2
 	echo -e "$2\n"
@@ -202,8 +208,8 @@ publish_dir=DIR
 #
 
 # default URL for OPAL source and regression-tests repository
-declare		src_repo_url='https://gitlab.psi.ch/OPAL/src.git'
-declare		tests_repo_url='https://gitlab.psi.ch/OPAL/regression-tests.git'
+declare		src_repo_url='https://github.com/OPALX-project/OPAL.git'
+declare		tests_repo_url='https://github.com/OPALX-project/regression-tests.git'
 
 
 # absolute or relative directory where to publish the results
