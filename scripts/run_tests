@@ -158,6 +158,9 @@ OPTIONS:
 	Run regression-tests even OPAL has not been compiled and the
 	tests has not been changed.
 
+--opalx
+	Set repository URLs for the OPALX project and its regression tests.
+
 -f | --force
 	Force compiling OPAL and run unit- and regression-tests.
 
@@ -527,6 +530,14 @@ run_regressiontests() {
 
         [[ -n ${publish_dir} ]] || return ${ec}
 
+        # compile the XML results file with the XSLT stylesheet
+        local -r results_xml="${publish_regtests_dir}/results_${timestamp}.xml"
+        local -r results_xslt="${publish_regtests_dir}/results.xslt"
+
+        if [[ -f "${results_xml}" && -f "${results_xslt}" ]]; then
+                xsltproc "${results_xslt}" "${results_xml}" > "${results_xml%.*}.html"
+        fi
+
         # get results from HTML file created/updated by regression-tests 
         local index_html="${publish_regtests_dir}/index.html"
         read passed broken failed total < <(
@@ -565,7 +576,7 @@ update_overview() {
 
         # links to generated XML pages used in the table
         local -r u_results_xml="../unitTests/${branch}/results_${timestamp}.xml"
-        local -r r_results_xml="../regressionTests/${branch}/results_${timestamp}.xml"
+        local -r r_results_xml="../regressionTests/${branch}/results_${timestamp}.html"
 
 	local time_col
 	local ofile="${publish_dir}/${branch}/output/${timestamp}.txt"
