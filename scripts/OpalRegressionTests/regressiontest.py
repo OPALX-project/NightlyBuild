@@ -116,7 +116,8 @@ class OpalRegressionTests:
     def _publish_results (self):
         rep = Reporter ()
 
-        webfilename = "results_" + self.timestamp + ".xml"
+        #webfilename = "results_" + self.timestamp + ".xml"
+        webfilename = "results_" + self.timestamp + ".html"
 
         index_fname = os.path.join (self.publish_dir, "index.html")
         if not os.path.exists(index_fname):

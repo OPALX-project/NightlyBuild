@@ -29,23 +29,37 @@ Regression tests must follow the following directory-layouts:
 Please make sure you use this naming scheme!
 """
 def scan_for_tests (dir):
+    # Switch to the directory containing regression tests
     os.chdir (dir)
 
     tests = set ()
+    # Iterate through all entries in the directory
     with os.scandir ('.') as it:
         for entry in it:
+            # Skip hidden directories (starting with .) or entries that are not directories
             if entry.name.startswith('.') or not entry.is_dir():
                 continue
+
             # check if all files required are available
             test = entry.name
             basename = os.path.join (test, test)
+
+            # A valid test requires:
+            # 1. An input file (<name>.in)
+            # 2. A runtime config file (<name>.rt)
+            # 3. A 'reference' subdirectory
             if not (os.path.isfile(basename + ".in") and
                     os.path.isfile(basename + ".rt") and
                     os.path.isdir(os.path.join (test, "reference"))):
                 continue
+
+            # Check if a 'disabled' file exists to skip this test
             if os.path.isfile(os.path.join(test, "disabled")):
                 continue
+                
             tests.add (test)
+            
+    # Return the list of tests sorted alphabetically
     return sorted(tests)
 
 
