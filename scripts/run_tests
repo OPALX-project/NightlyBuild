@@ -249,7 +249,7 @@ while (( $# > 0 )); do
                         if [[ $1 == *=* ]]; then
 		                cmake_args+=( "${1#*=}" )
                         else
-			        cmake_args+=( "$2"; shift 1 )
+			        cmake_args+=( "$2" ); shift 1
 		        fi
 		        ;;
                 --config|--config=* )
@@ -271,7 +271,7 @@ while (( $# > 0 )); do
                         if [[ $1 == *=* ]]; then
 			        opal_args+=( "${1#*=}" )
                         else
-			        opal_args+=( "$2"; shift 1 )
+			        opal_args+=( "$2" ); shift 1
                         fi
 			;;
 		--output-dir|--output-dir=* )
@@ -312,7 +312,7 @@ while (( $# > 0 )); do
                         if [[ $1 == *=* ]]; then
                                 unittests_args+=( "${1#*=}" )
                         else
-                                unittests_args+=( "$2"; shift 1 )
+                                unittests_args+=( "$2" ); shift 1
                         fi
                         ;;
 		--compile )
