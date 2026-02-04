@@ -206,7 +206,7 @@ class StatTest:
         with open(fname,"r") as infile:
             lines = [line.rstrip('\n') for line in infile]
     
-        m = re.search('(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine]);
+        m = re.search(r'(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine])
         if m:
             revision = m.group(1) + m.group(2)
         else:
@@ -235,7 +235,7 @@ class StatTest:
 
         stat_data = [line.rstrip('\n') for line in open(stat_file)]
 
-        m = re.search('(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', stat_data[readLines + revLine]);
+        m = re.search(r'(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', stat_data[readLines + revLine])
         if m:
             revision = m.group(1) + m.group(2)
         else:
@@ -276,7 +276,9 @@ class StatTest:
         plotcmd += "plot '" +  stat_plot_file + "' u 1:2 w l lw 2 t '" + opalRevision + "', "
         plotcmd += "'" + reference_plot_file + "' u 1:2 w l lw 2 t '" + refRevision + "', "
         plotcmd += "\"< paste " + stat_plot_file + " " + reference_plot_file + "\" u 1:($2-$4) w l lw 2 axis x1y2 t 'difference'" + ";\n"
-        plot = subprocess.Popen(['gnuplot'], stdin=subprocess.PIPE)
+        env = os.environ.copy()
+        env["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu"
+        plot = subprocess.Popen(['gnuplot'], stdin=subprocess.PIPE, env=env)
         plot.communicate(bytes(plotcmd, "UTF-8"))
         os.remove(stat_plot_file)
         os.remove(reference_plot_file)
