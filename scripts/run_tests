@@ -634,11 +634,11 @@ update_overview() {
 
 	# Define the styles to embed
 	local -r style_content="<style>
-  $(cat ${prefix}/html/org-html-themes/src/readtheorg_theme/css/htmlize.css)
-  $(cat ${prefix}/html/org-html-themes/src/readtheorg_theme/css/readtheorg.css)
+  $(cat ${prefix}/org-html-themes/src/readtheorg_theme/css/htmlize.css)
+  $(cat ${prefix}/org-html-themes/src/readtheorg_theme/css/readtheorg.css)
 </style>
 <script type=\"text/javascript\">
-  $(cat ${prefix}/html/org-html-themes/src/readtheorg_theme/js/readtheorg.js)
+  $(cat ${prefix}/org-html-themes/src/readtheorg_theme/js/readtheorg.js)
 </script>"
 
         emacs --batch --eval "
