@@ -109,7 +109,7 @@ OPTIONS:
 --src-repo-url=URL
 	URL of the OPAL repository to use. This option must be set
 	if the tests should be run on a fork of the OPAL repository
-	https://gitlab.psi.ch/OPAL/src.
+	https://github.com/OPALX-project/OPAL
 
 --branch=BRANCH
 	Branch in the source repository to use.
@@ -117,7 +117,7 @@ OPTIONS:
 --tests-repo-url=URL
 	URL of the regression-tests repository. This option must 
 	be set, if the tests should in the fork of the tests in
-	https://gitlab.psi.ch/OPAL/regression-tests
+	https://github.com/OPALX-project/regression-tests
 
 --regtests-branch=BRANCH
 	Branch in the regression-tests repository to use.
@@ -202,8 +202,8 @@ publish_dir=DIR
 #
 
 # default URL for OPAL source and regression-tests repository
-declare		src_repo_url='https://gitlab.psi.ch/OPAL/src.git'
-declare		tests_repo_url='https://gitlab.psi.ch/OPAL/regression-tests.git'
+declare		src_repo_url='https://github.com/OPALX-project/OPAL.git'
+declare		tests_repo_url='https://github.com/OPALX-project/regression-tests.git'
 
 
 # absolute or relative directory where to publish the results
