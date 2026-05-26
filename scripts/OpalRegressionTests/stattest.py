@@ -206,7 +206,7 @@ class StatTest:
         with open(fname,"r") as infile:
             lines = [line.rstrip('\n') for line in infile]
     
-        m = re.search('(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine]);
+        m = re.search(r'(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', lines[readLines + revLine])
         if m:
             revision = m.group(1) + m.group(2)
         else:
@@ -233,9 +233,10 @@ class StatTest:
             print ("Error in genplot: Cannot find stat variable!")
             return False
 
-        stat_data = [line.rstrip('\n') for line in open(stat_file)]
+        with open(stat_file,"r") as infile:
+            stat_data = [line.rstrip('\n') for line in infile]
 
-        m = re.search('(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', stat_data[readLines + revLine]);
+        m = re.search(r'(.* git rev\. )#([A-Za-z0-9]{7})[A-Za-z0-9]*', stat_data[readLines + revLine])
         if m:
             revision = m.group(1) + m.group(2)
         else:
