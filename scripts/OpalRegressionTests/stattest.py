@@ -276,9 +276,7 @@ class StatTest:
         plotcmd += "plot '" +  stat_plot_file + "' u 1:2 w l lw 2 t '" + opalRevision + "', "
         plotcmd += "'" + reference_plot_file + "' u 1:2 w l lw 2 t '" + refRevision + "', "
         plotcmd += "\"< paste " + stat_plot_file + " " + reference_plot_file + "\" u 1:($2-$4) w l lw 2 axis x1y2 t 'difference'" + ";\n"
-        env = os.environ.copy()
-        env["LD_LIBRARY_PATH"] = "/usr/lib/x86_64-linux-gnu"
-        plot = subprocess.Popen(['gnuplot'], stdin=subprocess.PIPE, env=env)
+        plot = subprocess.Popen(['gnuplot'], stdin=subprocess.PIPE)
         plot.communicate(bytes(plotcmd, "UTF-8"))
         os.remove(stat_plot_file)
         os.remove(reference_plot_file)
